@@ -660,6 +660,14 @@ input:focus, select:focus, textarea:focus {
 }
 
 @media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .task-form-container {
+    padding: 1.5rem 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
   .app-layout {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;

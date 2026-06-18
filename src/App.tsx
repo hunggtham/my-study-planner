@@ -8,7 +8,7 @@ import { Layout } from './components/Layout';
 import { Schedule } from './pages/Schedule';
 import { CalendarView } from './pages/Calendar';
 import { Settings } from './pages/Settings';
-import { MovedTasks } from './pages/MovedTasks';
+import { AttentionTasks } from './pages/AttentionTasks';
 import { Dashboard } from './pages/Dashboard';
 import { Goals } from './pages/Goals';
 import { SharedDashboard } from './pages/SharedDashboard';
@@ -38,7 +38,7 @@ export const App: React.FC = () => {
           <Route path="schedule" element={<Schedule />} />
           <Route path="calendar" element={<CalendarView />} />
           <Route path="goals" element={<Goals />} />
-          <Route path="moved" element={<MovedTasks />} />
+          <Route path="attention" element={<AttentionTasks />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         

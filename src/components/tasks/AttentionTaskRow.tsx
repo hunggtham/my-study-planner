@@ -4,14 +4,14 @@ import { getStatusMeta } from '../../utils/status';
 import { CategoryBadge, PriorityBadge } from './TaskBadges';
 import { MoreVertical, CheckCircle, Clock, RotateCcw, CalendarPlus, Edit2, Trash2, ArrowRight } from 'lucide-react';
 
-interface MovedTaskRowProps {
+interface AttentionTaskRowProps {
   task: Task;
   onAction: (taskId: string, action: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
 }
 
-export const MovedTaskRow: React.FC<MovedTaskRowProps> = ({ task, onAction, onEdit, onDelete }) => {
+export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({ task, onAction, onEdit, onDelete }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
   const [menuOpen, setMenuOpen] = useState(false);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LogOut, Settings, Calendar, CheckSquare, Target, Clock, BarChart2 } from 'lucide-react';
+import { LogOut, Settings, Calendar, CheckSquare, Target, BarChart2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export const Layout: React.FC = () => {
@@ -26,10 +26,6 @@ export const Layout: React.FC = () => {
           <NavLink to="/calendar" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
             <Calendar size={20} />
             <span>Lịch tháng</span>
-          </NavLink>
-          <NavLink to="/moved" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
-            <Clock size={20} />
-            <span>Task đã dời</span>
           </NavLink>
           <NavLink to="/goals" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
             <Target size={20} />

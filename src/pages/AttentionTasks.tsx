@@ -2,11 +2,11 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Task } from '../types';
-import { MovedTaskRow } from '../components/tasks/MovedTaskRow';
+import { AttentionTaskRow } from '../components/tasks/AttentionTaskRow';
 import { TaskForm } from '../components/TaskForm';
 import { format, addDays } from 'date-fns';
 
-export const MovedTasks: React.FC = () => {
+export const AttentionTasks: React.FC = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,7 @@ export const MovedTasks: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Partial<Task> | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchMovedTasks = async () => {
+  const fetchAttentionTasks = async () => {
     if (!user) return;
     setLoading(true);
     // status = 'moved' OR moved_count > 0 OR moved_from_task_id IS NOT NULL
@@ -38,7 +38,7 @@ export const MovedTasks: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMovedTasks();
+    fetchAttentionTasks();
   }, [user]);
 
   const filteredAndSortedTasks = useMemo(() => {
@@ -93,7 +93,7 @@ export const MovedTasks: React.FC = () => {
         if (error) throw error;
       }
       setIsFormOpen(false);
-      fetchMovedTasks();
+      fetchAttentionTasks();
     } catch (err: any) {
       alert('Lỗi: ' + err.message);
     } finally {
@@ -105,7 +105,7 @@ export const MovedTasks: React.FC = () => {
     <div className="page-container">
       <header className="page-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
         <div>
-          <h1>Task đã dời</h1>
+          <h1>Task cần chú ý</h1>
           <p className="text-muted">Quản lý những task bị trì hoãn hoặc dời ngày</p>
         </div>
 
@@ -140,7 +140,7 @@ export const MovedTasks: React.FC = () => {
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           {filteredAndSortedTasks.map(task => (
-            <MovedTaskRow 
+            <AttentionTaskRow 
               key={task.id} 
               task={task} 
               onAction={handleAction}

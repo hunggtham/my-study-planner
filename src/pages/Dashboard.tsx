@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Bạn có {delayedTasks.length} task đã bị dời ngày.</p>
                 </div>
               </div>
-              <Link to="/moved" className="secondary-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Link to="/attention" className="secondary-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 Xử lý ngay <ArrowRight size={16} />
               </Link>
             </div>
