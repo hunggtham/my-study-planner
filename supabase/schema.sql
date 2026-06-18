@@ -1,8 +1,20 @@
--- Enable UUID extension
+-- ==========================================
+-- SUPABASE SCHEMA SETUP
+-- Note: This file is for fresh setup. 
+-- For existing projects, refer to migrations.
+-- ==========================================
+
+-- ------------------------------------------
+-- 1. EXTENSIONS
+-- ------------------------------------------
 create extension if not exists "uuid-ossp";
 
+-- ------------------------------------------
+-- 2. TABLES
+-- ------------------------------------------
+
 -- Tasks table
-create table tasks (
+create table if not exists tasks (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade not null,
   date date not null,
@@ -23,67 +35,64 @@ create table tasks (
 );
 
 -- Goals table
-create table goals (
+create table if not exists goals (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade not null,
   period_type varchar(50) not null check (period_type in ('week', 'month')),
   period_start_date varchar(50) not null,
   title text not null,
   category varchar(255),
-  is_done boolean default false,
-  note text,
+  status varchar(50) default 'active',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Public Shares table (Option A)
-create table public_shares (
+-- Public shares table
+create table if not exists public_shares (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade not null unique,
   slug varchar(255) not null unique,
   is_active boolean default true,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Enable RLS
+-- ------------------------------------------
+-- 3. RLS SETUP & PRIVATE USER POLICIES
+-- ------------------------------------------
 alter table tasks enable row level security;
 alter table goals enable row level security;
 alter table public_shares enable row level security;
 
--- Policies for tasks
+-- Drop direct public read policies if they exist (hardening cleanup)
+drop policy if exists "Public can view tasks if shared" on tasks;
+drop policy if exists "Public can view goals if shared" on goals;
+
+-- Private CRUD policies for tasks
 create policy "Users can view their own tasks" on tasks for select using (auth.uid() = user_id);
-create policy "Users can create their own tasks" on tasks for insert with check (auth.uid() = user_id);
+create policy "Users can insert their own tasks" on tasks for insert with check (auth.uid() = user_id);
 create policy "Users can update their own tasks" on tasks for update using (auth.uid() = user_id);
 create policy "Users can delete their own tasks" on tasks for delete using (auth.uid() = user_id);
 
--- Policy to allow public read of tasks via active share link
-create policy "Public can view tasks if shared" on tasks for select using (
-  exists (
-    select 1 from public_shares 
-    where public_shares.user_id = tasks.user_id 
-    and public_shares.is_active = true
-  )
-);
-
--- Policies for goals
+-- Private CRUD policies for goals
 create policy "Users can view their own goals" on goals for select using (auth.uid() = user_id);
-create policy "Users can create their own goals" on goals for insert with check (auth.uid() = user_id);
+create policy "Users can insert their own goals" on goals for insert with check (auth.uid() = user_id);
 create policy "Users can update their own goals" on goals for update using (auth.uid() = user_id);
 create policy "Users can delete their own goals" on goals for delete using (auth.uid() = user_id);
 
--- Policy to allow public read of goals via active share link
-create policy "Public can view goals if shared" on goals for select using (
-  exists (
-    select 1 from public_shares 
-    where public_shares.user_id = goals.user_id 
-    and public_shares.is_active = true
-  )
-);
+-- Policies for public_shares
+create policy "Anyone can view active public shares" on public_shares for select using (is_active = true);
+create policy "Users can view their own share settings" on public_shares for select using (auth.uid() = user_id);
+create policy "Users can insert their own share settings" on public_shares for insert with check (auth.uid() = user_id);
+create policy "Users can update their own share settings" on public_shares for update using (auth.uid() = user_id);
+create policy "Users can delete their own share settings" on public_shares for delete using (auth.uid() = user_id);
 
+-- ------------------------------------------
+-- 4. PUBLIC SHARE RPC
+-- ------------------------------------------
 -- Public Dashboard RPC Function for secure read-only access
 create or replace function get_public_dashboard_by_slug(p_slug text)
 returns table (
-  id uuid,
   date date,
   category varchar,
   title varchar,
@@ -106,23 +115,18 @@ begin
     return;
   end if;
 
-  -- Return only safe fields
+  -- Return only safe fields, strictly omitting internal IDs and notes
   return query
-  select t.id, t.date, t.category, t.title, t.status, t.task_type, t.priority
+  select t.date, t.category, t.title, t.status, t.task_type, t.priority
   from tasks t
   where t.user_id = target_user_id
   order by t.date desc, t.start_time asc;
 end;
 $$;
 
--- Policies for public_shares
-create policy "Anyone can view active public shares" on public_shares for select using (is_active = true);
-create policy "Users can view their own share settings" on public_shares for select using (auth.uid() = user_id);
-create policy "Users can create their own share settings" on public_shares for insert with check (auth.uid() = user_id);
-create policy "Users can update their own share settings" on public_shares for update using (auth.uid() = user_id);
-create policy "Users can delete their own share settings" on public_shares for delete using (auth.uid() = user_id);
-
--- Indexes for performance
+-- ------------------------------------------
+-- 5. INDEXES
+-- ------------------------------------------
 create index if not exists idx_tasks_user_id_date on tasks(user_id, date);
 create index if not exists idx_tasks_user_id_status on tasks(user_id, status);
 create index if not exists idx_tasks_user_id_category on tasks(user_id, category);

@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 interface PublicTask {
-  id: string;
   date: string;
   category: string;
   title: string;
@@ -68,8 +67,8 @@ export const SharedDashboard: React.FC = () => {
       <div className="card">
         <h3>Các task gần đây (20 task)</h3>
         <ul style={{ marginTop: '1rem', listStyle: 'none', padding: 0 }}>
-          {tasks.slice(0, 20).map(t => (
-            <li key={t.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem' }}>
+          {tasks.slice(0, 20).map((t, i) => (
+            <li key={i} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem' }}>
               <span style={{ display: 'inline-block', width: '24px' }}>
                 {t.status === 'done' ? '✅' : t.status === 'skipped' ? '⏭️' : t.status === 'moved' ? '➡️' : '⏳'}
               </span>

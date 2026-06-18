@@ -38,6 +38,7 @@ This will run `tsc` and ensure there are no typing errors before building the pr
 
 ## 2. Supabase Setup Instructions
 
+### For New Projects (Fresh Setup)
 1. Go to [Supabase](https://supabase.com) and create a new project.
 2. Once provisioned, go to **Project Settings > API**.
 3. Copy the **Project URL** and paste it into `.env.local` as `VITE_SUPABASE_URL`.
@@ -47,6 +48,12 @@ This will run `tsc` and ensure there are no typing errors before building the pr
 6. Go to the **SQL Editor** in your Supabase dashboard.
 7. Open the file `supabase/schema.sql` from this repository.
 8. Copy all the text in `supabase/schema.sql` and paste it into the Supabase SQL Editor, then click **Run**. This sets up all tables, indexes, constraints, RLS policies, and the RPC function for public sharing.
+
+### For Existing Projects (Migration)
+If you already ran an older version of `schema.sql`, running the entire file again might throw constraint errors. Instead:
+1. Open the **SQL Editor** in Supabase.
+2. Open the file `supabase/migrations/001_harden_public_share.sql`.
+3. Copy its contents and click **Run**. This will cleanly drop old unsafe policies, update the RPC function safely, and add missing indexes without wiping your data.
 
 ---
 
