@@ -11,6 +11,7 @@ export const Today: React.FC = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalTaskCount, setTotalTaskCount] = useState(0);
   
   // Modal state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -36,6 +37,10 @@ export const Today: React.FC = () => {
       console.error(error);
     } else {
       setTasks(data || []);
+      if (!data || data.length === 0) {
+        const { count } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+        setTotalTaskCount(count || 0);
+      }
     }
     setLoading(false);
   };
@@ -141,7 +146,11 @@ export const Today: React.FC = () => {
         <div className="loading-state">Đang tải...</div>
       ) : tasks.length === 0 ? (
         <div className="empty-state card">
-          <p>Không có task nào. Hãy thêm task mới!</p>
+          {totalTaskCount > 0 ? (
+            <p>Bạn có task trong database, nhưng không có task nào thuộc hôm nay hoặc quá hạn. Hãy mở tab Lịch tháng để xem toàn bộ lịch.</p>
+          ) : (
+            <p>Không có task nào. Hãy thêm task mới!</p>
+          )}
         </div>
       ) : (
         <div className="task-groups" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
