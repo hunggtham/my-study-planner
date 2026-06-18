@@ -1,11 +1,31 @@
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, 1fr) 32px;
   gap: 0.5rem;
   background: var(--border-color);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
+}
+
+.week-goal-btn {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.week-goal-btn:hover {
+  background: var(--primary);
+  color: #fff;
 }
 
 .calendar-header-cell {

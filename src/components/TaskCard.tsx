@@ -1,5 +1,7 @@
 import React from 'react';
-import { Task } from '../types';
+import { Task, TaskStatus } from '../types';
+import { getStatusMeta } from '../utils/status';
+import { Clock, Tag, AlertCircle, FileText, Settings2, Copy, Trash2, ArrowRight } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
@@ -23,14 +25,6 @@ const CATEGORY_CLASS: Record<string, string> = {
   'Optional': 'cat-optional'
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  todo: 'Chưa làm',
-  in_progress: 'Đang làm',
-  done: 'Hoàn thành',
-  moved: 'Đã dời',
-  skipped: 'Bỏ qua'
-};
-
 const PRIORITY_LABELS: Record<string, string> = {
   high: 'Cao',
   medium: 'Vừa',
@@ -39,59 +33,82 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onMove, onEdit, onDelete, onDuplicate, readonlyMove }) => {
   const categoryClass = CATEGORY_CLASS[task.category] || 'cat-default';
-  const done = task.status === 'done';
+  const meta = getStatusMeta(task.status);
+  const StatusIcon = meta.icon;
+
+  const handleStatusClick = (status: TaskStatus) => {
+    onUpdate(task.id, { status });
+  };
 
   return (
-    <article className={`task-card ${done ? 'is-done' : ''}`}>
-      <div className="task-top">
-        <span className="task-time">{task.start_time} - {task.end_time}</span>
-        <span className={`category ${categoryClass}`}>{task.category}</span>
-        <span className="priority">{PRIORITY_LABELS[task.priority] || task.priority}</span>
+    <article className={`task-card modern ${meta.className}`}>
+      <div className="task-header">
+        <div className="task-badges">
+          <span className={`badge category ${categoryClass}`}><Tag size={12} style={{ marginRight: 4 }}/>{task.category}</span>
+          <span className={`badge priority-${task.priority}`}><AlertCircle size={12} style={{ marginRight: 4 }}/>{PRIORITY_LABELS[task.priority] || task.priority}</span>
+        </div>
+        <div className={`status-badge ${meta.className}`}>
+          <StatusIcon size={14} />
+          <span>{meta.label}</span>
+          {task.status === 'moved' && task.moved_count > 0 && <span className="moved-count">({task.moved_count})</span>}
+        </div>
       </div>
 
-      <div className="task-main">
-        <label className="done-check">
-          <input
-            type="checkbox"
-            checked={done}
-            onChange={e => onUpdate(task.id, { status: e.target.checked ? 'done' : 'todo' })}
-          />
-          <span>{task.title}</span>
-        </label>
-        <select 
-          value={task.status} 
-          onChange={e => onUpdate(task.id, { status: e.target.value as any })}
-        >
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
+      <div className="task-title-area">
+        <h4 className="task-title">{task.title}</h4>
       </div>
 
-      <p className="task-detail">{task.description}</p>
+      <div className="task-meta-row">
+        <span className="task-time"><Clock size={14} style={{ marginRight: 4 }}/>{task.start_time} - {task.end_time}</span>
+      </div>
 
-      <label className="field">
-        Note nhanh
-        <textarea
-          value={task.note || ''}
-          placeholder="Ví dụ: làm 1 đề, sai nhiều JOIN, dời vì mệt..."
-          onChange={e => onUpdate(task.id, { note: e.target.value })}
-          rows={1}
-        />
-      </label>
+      {task.description && (
+        <p className="task-detail"><FileText size={14} style={{ marginRight: 4, flexShrink: 0 }}/><span>{task.description}</span></p>
+      )}
+
+      {task.note && (
+        <div className="task-note">
+          <strong>Note:</strong> {task.note}
+        </div>
+      )}
+
+      <div className="task-quick-actions">
+        {['todo', 'in_progress', 'done', 'skipped'].map((s) => {
+          const sMeta = getStatusMeta(s as TaskStatus);
+          const SIcon = sMeta.icon;
+          return (
+            <button 
+              key={s} 
+              className={`quick-status-btn ${task.status === s ? 'active' : ''} ${sMeta.className}`}
+              onClick={() => handleStatusClick(s as TaskStatus)}
+              title={sMeta.label}
+            >
+              <SIcon size={16} />
+            </button>
+          )
+        })}
+      </div>
 
       <div className="task-actions-row">
         {!readonlyMove && task.status !== 'moved' && (
-          <button className="secondary-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onMove(task.id)}>Dời ngày</button>
+          <button className="secondary-btn icon-btn" onClick={() => onMove(task.id)} title="Dời ngày">
+            <ArrowRight size={14} /> Dời
+          </button>
         )}
         {onEdit && (
-          <button className="secondary-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onEdit(task)}>Sửa</button>
+          <button className="secondary-btn icon-btn" onClick={() => onEdit(task)} title="Sửa">
+            <Settings2 size={14} />
+          </button>
         )}
         {onDuplicate && (
-          <button className="secondary-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onDuplicate(task)}>Nhân bản</button>
+          <button className="secondary-btn icon-btn" onClick={() => onDuplicate(task)} title="Nhân bản">
+            <Copy size={14} />
+          </button>
         )}
         {onDelete && (
-          <button className="danger-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onDelete(task.id)}>Xóa</button>
+          <button className="danger-btn icon-btn" onClick={() => onDelete(task.id)} title="Xóa">
+            <Trash2 size={14} />
+          </button>
         )}
       </div>
     </article>

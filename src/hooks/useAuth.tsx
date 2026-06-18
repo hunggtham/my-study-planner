@@ -24,6 +24,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      const isAutoLogin = localStorage.getItem('study-planner-auto-login') !== 'false';
+      const sessionActive = sessionStorage.getItem('study-planner-session-active');
+      
+      if (session && !isAutoLogin && !sessionActive) {
+        supabase.auth.signOut().then(() => {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+        });
+        return;
+      }
+      
+      sessionStorage.setItem('study-planner-session-active', 'true');
       setSession(session);
       setUser(session?.user || null);
       setLoading(false);

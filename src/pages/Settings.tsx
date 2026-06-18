@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -9,6 +9,17 @@ export const Settings: React.FC = () => {
   const [hasShare, setHasShare] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [dbCheckResult, setDbCheckResult] = useState<any>(null);
+  const [importPreview, setImportPreview] = useState<any[] | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [autoLogin, setAutoLogin] = useState(() => {
+    return localStorage.getItem('study-planner-auto-login') !== 'false';
+  });
+
+  const toggleAutoLogin = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setAutoLogin(checked);
+    localStorage.setItem('study-planner-auto-login', checked ? 'true' : 'false');
+  };
 
   const checkDb = async () => {
     if (!user) return;
@@ -148,6 +159,98 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const exportToExcel = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from('tasks').select('*').eq('user_id', user.id).order('date', { ascending: false });
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        alert('Không có dữ liệu để xuất.');
+        return;
+      }
+
+      const { utils, writeFile } = await import('xlsx');
+      
+      const exportData = data.map(t => ({
+        'Ngày': t.date,
+        'Bắt đầu': t.start_time,
+        'Kết thúc': t.end_time,
+        'Tiêu đề': t.title,
+        'Danh mục': t.category,
+        'Trạng thái': t.status,
+        'Độ ưu tiên': t.priority,
+        'Loại': t.task_type,
+        'Chi tiết': t.description,
+        'Ghi chú': t.note
+      }));
+
+      const ws = utils.json_to_sheet(exportData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Tasks');
+      writeFile(wb, `study_planner_tasks_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (err: any) {
+      alert('Lỗi xuất Excel: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { read, utils } = await import('xlsx');
+      const buffer = await file.arrayBuffer();
+      const wb = read(buffer);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = utils.sheet_to_json(ws);
+
+      if (!data || data.length === 0) {
+        alert('File không có dữ liệu');
+        return;
+      }
+
+      setImportPreview(data);
+    } catch (err: any) {
+      alert('Lỗi đọc file: ' + err.message);
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const confirmImport = async () => {
+    if (!user || !importPreview) return;
+    setLoading(true);
+    try {
+      const tasksToInsert = importPreview.map(row => ({
+        user_id: user.id,
+        date: row['Ngày'] || new Date().toISOString().split('T')[0],
+        start_time: row['Bắt đầu'] || '',
+        end_time: row['Kết thúc'] || '',
+        title: row['Tiêu đề'] || 'Không có tiêu đề',
+        category: row['Danh mục'] || 'Chung',
+        status: row['Trạng thái'] || 'todo',
+        priority: row['Độ ưu tiên'] || 'medium',
+        task_type: row['Loại'] || 'main',
+        description: row['Chi tiết'] || '',
+        note: row['Ghi chú'] || ''
+      }));
+
+      const { error } = await supabase.from('tasks').insert(tasksToInsert);
+      if (error) throw error;
+      
+      alert(`Nhập thành công ${tasksToInsert.length} task!`);
+      setImportPreview(null);
+    } catch (err: any) {
+      alert('Lỗi nhập dữ liệu: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateShareLink = async () => {
     if (!user) return;
     setLoading(true);
@@ -210,6 +313,19 @@ export const Settings: React.FC = () => {
       <div className="card settings-section">
         <h3>Tài khoản</h3>
         <p>Đăng nhập bằng: <strong>{user?.email}</strong></p>
+        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <input 
+            type="checkbox" 
+            id="autoLogin" 
+            checked={autoLogin} 
+            onChange={toggleAutoLogin} 
+            style={{ width: 'auto', cursor: 'pointer' }}
+          />
+          <label htmlFor="autoLogin" style={{ cursor: 'pointer' }}>Ghi nhớ đăng nhập (30 ngày)</label>
+        </div>
+        <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+          Nếu tắt, phiên đăng nhập sẽ tự động kết thúc khi bạn đóng trình duyệt.
+        </p>
         <button className="danger-btn" style={{ marginTop: '1rem', width: 'auto' }} onClick={() => supabase.auth.signOut()}>Đăng xuất</button>
       </div>
 
@@ -237,10 +353,44 @@ export const Settings: React.FC = () => {
       </div>
 
       <div className="card settings-section">
+        <h3>Nhập / Xuất Excel</h3>
+        <p className="text-muted">Lưu trữ dữ liệu học tập ra file Excel hoặc import từ file Excel vào hệ thống.</p>
+        <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+          <button className="primary-btn" style={{ width: 'auto', margin: 0 }} onClick={exportToExcel} disabled={loading}>
+            {loading ? 'Đang tải...' : 'Xuất dữ liệu (.xlsx)'}
+          </button>
+          
+          <input 
+            type="file" 
+            accept=".xlsx" 
+            ref={fileInputRef} 
+            style={{ display: 'none' }} 
+            onChange={handleFileChange}
+          />
+          <button className="secondary-btn" style={{ width: 'auto', margin: 0 }} onClick={() => fileInputRef.current?.click()} disabled={loading}>
+            Nhập dữ liệu (.xlsx)
+          </button>
+        </div>
+      </div>
+
+      <div className="card settings-section">
         <h3>Đồng bộ dữ liệu cũ</h3>
         <p className="text-muted">Lấy dữ liệu từ phiên bản dùng thử (chỉ lưu trên máy này) và đẩy lên tài khoản của bạn.</p>
         <button className="primary-btn" onClick={importLocalData} disabled={loading}>
           {loading ? 'Đang xử lý...' : 'Đồng bộ từ LocalStorage'}
+        </button>
+      </div>
+
+      <div className="card settings-section">
+        <h3>Quản lý dữ liệu cục bộ</h3>
+        <p className="text-muted">Tính năng này giúp giải phóng dung lượng hoặc xóa các cài đặt cũ (như chế độ xem, form task tạm thời). Dữ liệu trên mây sẽ không bị ảnh hưởng.</p>
+        <button className="danger-btn" style={{ width: 'auto', marginTop: '1rem' }} onClick={() => {
+          if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm (LocalStorage)? Phiên đăng nhập hiện tại có thể bị thoát và các thiết lập hiển thị sẽ bị reset.')) {
+            localStorage.clear();
+            window.location.reload();
+          }
+        }}>
+          Xóa bộ nhớ đệm (LocalStorage)
         </button>
       </div>
 
@@ -271,6 +421,45 @@ export const Settings: React.FC = () => {
           </button>
         )}
       </div>
+
+      {importPreview && (
+        <div className="task-form-overlay" style={{ zIndex: 1000 }}>
+          <div className="task-form-container card" style={{ maxWidth: '600px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Xác nhận Nhập Dữ Liệu</h3>
+              <button className="secondary-btn icon-btn" onClick={() => setImportPreview(null)} style={{ width: 'auto' }}>Đóng</button>
+            </div>
+            
+            <p style={{ marginBottom: '1rem' }}>Tìm thấy <strong>{importPreview.length}</strong> dòng hợp lệ. Dưới đây là 3 dòng đầu tiên:</p>
+            
+            <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-dark)', borderRadius: '4px', border: '1px solid var(--border-color)', padding: '0.5rem' }}>
+              <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
+                    <th style={{ padding: '0.5rem' }}>Ngày</th>
+                    <th style={{ padding: '0.5rem' }}>Tiêu đề</th>
+                    <th style={{ padding: '0.5rem' }}>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.slice(0, 3).map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.5rem' }}>{row['Ngày'] || '-'}</td>
+                      <td style={{ padding: '0.5rem' }}>{row['Tiêu đề'] || '-'}</td>
+                      <td style={{ padding: '0.5rem' }}>{row['Trạng thái'] || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <button className="secondary-btn" onClick={() => setImportPreview(null)} disabled={loading}>Hủy</button>
+              <button className="primary-btn" onClick={confirmImport} disabled={loading}>{loading ? 'Đang xử lý...' : 'Xác nhận Nhập'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -6,12 +6,21 @@ import { TaskCard } from '../components/TaskCard';
 import { TaskForm } from '../components/TaskForm';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { getStatusMeta } from '../utils/status';
+import { PartyPopper } from 'lucide-react';
 
 export const Today: React.FC = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalTaskCount, setTotalTaskCount] = useState(0);
+  const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'compact'>(() => {
+    return (localStorage.getItem('study-planner-today-view-mode') as any) || 'list';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('study-planner-today-view-mode', viewMode);
+  }, [viewMode]);
   
   // Modal state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -128,13 +137,20 @@ export const Today: React.FC = () => {
 
   return (
     <div className="page-container">
-      <header className="page-header" style={{ alignItems: 'flex-start' }}>
+      <header className="page-header" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1>Hôm nay</h1>
           <p className="text-muted">{format(new Date(), 'EEEE, dd MMMM, yyyy', { locale: vi })}</p>
-          <button className="primary-btn" style={{ marginTop: '1rem', width: 'auto' }} onClick={() => { setEditingTask(undefined); setIsFormOpen(true); }}>
-            + Thêm Task
-          </button>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button className="primary-btn" style={{ width: 'auto', marginTop: 0 }} onClick={() => { setEditingTask(undefined); setIsFormOpen(true); }}>
+              + Thêm Task
+            </button>
+            <div className="segmented-control">
+              <button className={`segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>List</button>
+              <button className={`segmented-btn ${viewMode === 'timeline' ? 'active' : ''}`} onClick={() => setViewMode('timeline')}>Timeline</button>
+              <button className={`segmented-btn ${viewMode === 'compact' ? 'active' : ''}`} onClick={() => setViewMode('compact')}>Compact</button>
+            </div>
+          </div>
         </div>
         <div className="progress-badge">
           <span>{progress}% Hoàn thành</span>
@@ -145,35 +161,118 @@ export const Today: React.FC = () => {
       {loading ? (
         <div className="loading-state">Đang tải...</div>
       ) : tasks.length === 0 ? (
-        <div className="empty-state card">
+        <div className="empty-state card" style={{ textAlign: 'center', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <PartyPopper size={48} color="var(--primary)" style={{ marginBottom: '1rem', opacity: 0.8 }} />
           {totalTaskCount > 0 ? (
-            <p>Bạn có task trong database, nhưng không có task nào thuộc hôm nay hoặc quá hạn. Hãy mở tab Lịch tháng để xem toàn bộ lịch.</p>
+            <>
+              <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Tuyệt vời! Không có task nào cần làm ngay.</p>
+              <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>Bạn có task trong database, nhưng không có task nào thuộc hôm nay hoặc quá hạn. Hãy mở tab Lịch tháng để xem toàn bộ lịch.</p>
+            </>
           ) : (
-            <p>Không có task nào. Hãy thêm task mới!</p>
+            <>
+              <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Chưa có task nào.</p>
+              <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>Hãy thêm task mới để bắt đầu học tập!</p>
+            </>
           )}
+          <button className="primary-btn" style={{ width: 'auto' }} onClick={() => { setEditingTask(undefined); setIsFormOpen(true); }}>
+            + Thêm Task Mới
+          </button>
         </div>
       ) : (
-        <div className="task-groups" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {Object.entries(groups).map(([category, catTasks]) => (
-            <div key={category} className="task-group">
-              <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                {category} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>({catTasks.length})</span>
-              </h3>
-              <div className="task-list">
-                {catTasks.map(task => (
-                  <TaskCard 
-                    key={task.id} 
-                    task={task} 
-                    onUpdate={updateTask} 
-                    onMove={moveToTomorrow}
-                    onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
-                    onDelete={handleDelete}
-                    onDuplicate={handleDuplicate}
-                  />
-                ))}
-              </div>
+        <div className="task-views-container" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {viewMode === 'list' && (
+            <div className="task-groups" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              {Object.entries(groups).map(([category, catTasks]) => (
+                <div key={category} className="task-group">
+                  <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                    {category} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>({catTasks.length})</span>
+                  </h3>
+                  <div className="task-list">
+                    {catTasks.map(task => (
+                      <TaskCard 
+                        key={task.id} 
+                        task={task} 
+                        onUpdate={updateTask} 
+                        onMove={moveToTomorrow}
+                        onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                        onDelete={handleDelete}
+                        onDuplicate={handleDuplicate}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+
+          {viewMode === 'timeline' && (() => {
+            const timedTasks = tasks.filter(t => t.start_time).sort((a, b) => a.start_time.localeCompare(b.start_time));
+            const noTimeTasks = tasks.filter(t => !t.start_time);
+
+            return (
+              <div className="timeline-view">
+                {timedTasks.map(task => (
+                  <div key={task.id} className="timeline-item">
+                    <div className="timeline-time">{task.start_time}</div>
+                    <div className="timeline-content">
+                      <TaskCard 
+                        task={task} 
+                        onUpdate={updateTask} 
+                        onMove={moveToTomorrow}
+                        onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                        onDelete={handleDelete}
+                        onDuplicate={handleDuplicate}
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {noTimeTasks.length > 0 && (
+                  <div className="timeline-item">
+                    <div className="timeline-time">No time</div>
+                    <div className="timeline-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {noTimeTasks.map(task => (
+                        <TaskCard 
+                          key={task.id} 
+                          task={task} 
+                          onUpdate={updateTask} 
+                          onMove={moveToTomorrow}
+                          onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                          onDelete={handleDelete}
+                          onDuplicate={handleDuplicate}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {viewMode === 'compact' && (
+            <div className="compact-view card">
+              {tasks.map(task => {
+                const meta = getStatusMeta(task.status);
+                const Icon = meta.icon;
+                return (
+                  <div key={task.id} className="compact-item" style={{ borderLeft: `3px solid var(--${meta.intent === 'neutral' ? 'text-muted' : meta.intent})` }}>
+                    <div className="compact-main">
+                      <button 
+                        className="compact-done-btn" 
+                        onClick={() => updateTask(task.id, { status: task.status === 'done' ? 'todo' : 'done' })}
+                      >
+                        <Icon size={18} className={task.status === 'done' ? 'is-done' : ''} />
+                      </button>
+                      <div className="compact-info">
+                        <span className={`compact-title ${task.status === 'done' ? 'is-done' : ''}`}>{task.title}</span>
+                        <span className="compact-meta">{task.category} • {task.start_time || 'No time'}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
