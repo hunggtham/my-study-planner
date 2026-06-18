@@ -26,6 +26,7 @@ export const Schedule: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Partial<Task> | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchScheduleTasks = async () => {
     if (!user) return;
@@ -59,8 +60,26 @@ export const Schedule: React.FC = () => {
   }, [user, selectedDate]);
 
   const updateTask = async (id: string, patch: Partial<Task>) => {
+    if (processingId) return;
+    setProcessingId(id);
+    const backup = tasks.find(t => t.id === id) || overdueTasks.find(t => t.id === id);
+    
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
-    await supabase.from('tasks').update(patch).eq('id', id);
+    setOverdueTasks(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+    
+    try {
+      const { error } = await supabase.from('tasks').update(patch).eq('id', id);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Update failed:', err);
+      alert('Lỗi cập nhật: ' + err.message);
+      if (backup) {
+        setTasks(prev => prev.map(t => t.id === id ? backup : t));
+        setOverdueTasks(prev => prev.map(t => t.id === id ? backup : t));
+      }
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleSaveForm = async (taskData: Partial<Task>) => {
@@ -86,9 +105,27 @@ export const Schedule: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (processingId) return;
     if (!window.confirm('Bạn có chắc muốn xóa task này?')) return;
+    
+    setProcessingId(id);
+    const backupTasks = [...tasks];
+    const backupOverdue = [...overdueTasks];
+    
     setTasks(prev => prev.filter(t => t.id !== id));
-    await supabase.from('tasks').delete().eq('id', id);
+    setOverdueTasks(prev => prev.filter(t => t.id !== id));
+    
+    try {
+      const { error } = await supabase.from('tasks').delete().eq('id', id);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      alert('Lỗi xóa task: ' + err.message);
+      setTasks(backupTasks);
+      setOverdueTasks(backupOverdue);
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleDuplicate = (task: Task) => {
@@ -98,31 +135,44 @@ export const Schedule: React.FC = () => {
   };
 
   const moveToTomorrow = async (id: string) => {
-    const task = tasks.find(t => t.id === id);
+    if (processingId) return;
+    const task = tasks.find(t => t.id === id) || overdueTasks.find(t => t.id === id);
     if (!task) return;
+    
+    setProcessingId(id);
     const tomorrow = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
     
-    await updateTask(id, { status: 'moved' });
-    
-    const newTask = {
-      user_id: user?.id,
-      date: tomorrow,
-      start_time: task.start_time,
-      end_time: task.end_time,
-      category: task.category,
-      title: task.title,
-      description: task.description,
-      task_type: task.task_type,
-      status: 'todo',
-      priority: task.priority,
-      score_weight: task.score_weight,
-      moved_from_task_id: task.id,
-      moved_count: task.moved_count + 1,
-      note: `${task.note ? task.note + ' | ' : ''}Dời từ ${task.date}`,
-    };
-    
-    await supabase.from('tasks').insert([newTask]);
-    fetchScheduleTasks();
+    try {
+      const { error: err1 } = await supabase.from('tasks').update({ status: 'moved' }).eq('id', id);
+      if (err1) throw err1;
+      
+      const newTask = {
+        user_id: user?.id,
+        date: tomorrow,
+        start_time: task.start_time,
+        end_time: task.end_time,
+        category: task.category,
+        title: task.title,
+        description: task.description,
+        task_type: task.task_type,
+        status: 'todo',
+        priority: task.priority,
+        score_weight: task.score_weight,
+        moved_from_task_id: task.id,
+        moved_count: task.moved_count + 1,
+        note: `${task.note ? task.note + ' | ' : ''}Dời từ ${task.date}`,
+      };
+      
+      const { error: err2 } = await supabase.from('tasks').insert([newTask]);
+      if (err2) throw err2;
+      
+      fetchScheduleTasks();
+    } catch (err: any) {
+      console.error('Move failed:', err);
+      alert('Lỗi dời task: ' + err.message);
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const completedCount = tasks.filter(t => t.status === 'done').length;
@@ -212,6 +262,7 @@ export const Schedule: React.FC = () => {
                     onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
                     onDelete={handleDelete}
                     onDuplicate={handleDuplicate}
+                    isProcessing={processingId === task.id}
                   />
                 ))}
               </div>
@@ -254,6 +305,7 @@ export const Schedule: React.FC = () => {
                           onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
                           onDelete={handleDelete}
                           onDuplicate={handleDuplicate}
+                          isProcessing={processingId === task.id}
                         />
                       ))}
                     </div>
@@ -280,6 +332,7 @@ export const Schedule: React.FC = () => {
                       onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
                       onDelete={handleDelete}
                       onDuplicate={handleDuplicate}
+                      isProcessing={processingId === task.id}
                     />
                   ))}
                 </div>
@@ -298,6 +351,7 @@ export const Schedule: React.FC = () => {
                           onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
                           onDelete={handleDelete}
                           onDuplicate={handleDuplicate}
+                          isProcessing={processingId === task.id}
                         />
                       ))}
                     </div>
@@ -319,6 +373,7 @@ export const Schedule: React.FC = () => {
                   onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
                   onDelete={handleDelete}
                   onDuplicate={handleDuplicate}
+                  isProcessing={processingId === task.id}
                 />
               ))}
             </div>

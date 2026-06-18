@@ -3,11 +3,12 @@ import { BaseTaskDisplayProps } from './TaskDisplay';
 import { getStatusMeta } from '../../utils/status';
 import { CategoryBadge } from './TaskBadges';
 
-export const TimelineTaskItem: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate, onEdit }) => {
+export const TimelineTaskItem: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate, onEdit, isProcessing }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
 
   const toggleStatus = () => {
+    if (isProcessing) return;
     onUpdate(task.id, { status: task.status === 'done' ? 'todo' : 'done' });
   };
 
@@ -16,7 +17,8 @@ export const TimelineTaskItem: React.FC<BaseTaskDisplayProps> = ({ task, onUpdat
       position: 'relative',
       display: 'flex',
       gap: '1rem',
-      paddingBottom: '1.5rem'
+      paddingBottom: '1.5rem',
+      opacity: isProcessing ? 0.7 : 1
     }}>
       {/* Timeline line and dot */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '40px' }}>
@@ -35,7 +37,7 @@ export const TimelineTaskItem: React.FC<BaseTaskDisplayProps> = ({ task, onUpdat
           background: task.status === 'done' ? 'var(--success)' : 'var(--bg-dark)',
           border: `2px solid ${task.status === 'done' ? 'var(--success)' : 'var(--primary)'}`,
           zIndex: 2,
-          cursor: 'pointer'
+          cursor: isProcessing ? 'default' : 'pointer'
         }} onClick={toggleStatus} title="Đổi trạng thái" />
         <div style={{
           width: '2px',
@@ -54,10 +56,10 @@ export const TimelineTaskItem: React.FC<BaseTaskDisplayProps> = ({ task, onUpdat
           display: 'flex', 
           flexDirection: 'column', 
           gap: '0.5rem',
-          cursor: onEdit ? 'pointer' : 'default',
+          cursor: isProcessing ? 'default' : (onEdit ? 'pointer' : 'default'),
           borderLeft: `3px solid var(--${meta.intent === 'neutral' ? 'text-muted' : meta.intent})`
         }}
-        onClick={() => onEdit && onEdit(task)}
+        onClick={() => !isProcessing && onEdit && onEdit(task)}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <h4 style={{ 

@@ -9,9 +9,10 @@ interface AttentionTaskRowProps {
   onAction: (taskId: string, action: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  isProcessing?: boolean;
 }
 
-export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({ task, onAction, onEdit, onDelete }) => {
+export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({ task, onAction, onEdit, onDelete, isProcessing }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -25,7 +26,8 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({ task, onActi
       borderBottom: '1px solid var(--border-color)',
       background: 'var(--bg-panel)',
       position: 'relative',
-      opacity: task.status === 'done' ? 0.7 : 1
+      opacity: isProcessing ? 0.5 : (task.status === 'done' ? 0.7 : 1),
+      pointerEvents: isProcessing ? 'none' : 'auto'
     }}>
       <div style={{ color: task.status === 'done' ? 'var(--success)' : 'var(--text-muted)' }}>
         <StatusIcon size={20} />

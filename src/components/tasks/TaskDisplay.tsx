@@ -12,6 +12,7 @@ export interface BaseTaskDisplayProps {
   onDelete?: (id: string) => void;
   onDuplicate?: (task: Task) => void;
   readonlyMove?: boolean;
+  isProcessing?: boolean;
 }
 
 export interface TaskDisplayProps extends BaseTaskDisplayProps {

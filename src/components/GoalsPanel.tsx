@@ -29,7 +29,15 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({ periodType, periodStartD
       .eq('period_type', periodType)
       .eq('period_start_date', periodStartDate)
       .order('created_at', { ascending: true });
-    if (data) setGoals(data);
+    
+    if (data) {
+      // Map DB status to local is_done for backward compatibility
+      const mappedGoals = data.map(g => ({
+        ...g,
+        is_done: g.status === 'done'
+      }));
+      setGoals(mappedGoals);
+    }
     setLoading(false);
   };
 
@@ -39,13 +47,30 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({ periodType, periodStartD
 
   const toggleGoal = async (id: string, is_done: boolean) => {
     setGoals(prev => prev.map(g => g.id === id ? { ...g, is_done } : g));
-    await supabase.from('goals').update({ is_done }).eq('id', id);
+    const newStatus = is_done ? 'done' : 'active';
+    try {
+      const { error } = await supabase.from('goals').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Goal toggle failed:', err);
+      alert('Không thể cập nhật mục tiêu. Vui lòng thử lại.');
+      // Revert local state
+      setGoals(prev => prev.map(g => g.id === id ? { ...g, is_done: !is_done } : g));
+    }
   };
 
   const deleteGoal = async (id: string) => {
     if (!window.confirm('Xóa mục tiêu này?')) return;
+    const backup = [...goals];
     setGoals(prev => prev.filter(g => g.id !== id));
-    await supabase.from('goals').delete().eq('id', id);
+    try {
+      const { error } = await supabase.from('goals').delete().eq('id', id);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Goal delete failed:', err);
+      alert('Không thể xóa mục tiêu. Vui lòng thử lại.');
+      setGoals(backup);
+    }
   };
 
   const addGoal = async (e: React.FormEvent) => {
@@ -58,16 +83,22 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({ periodType, periodStartD
       period_start_date: periodStartDate,
       title: newTitle.trim(),
       category: 'General',
-      is_done: false,
-      note: ''
+      status: 'active'
+      // removed is_done and note as they don't exist in goals table
     };
 
-    const { data, error } = await supabase.from('goals').insert([newGoal]).select();
-    if (!error && data) {
-      setGoals(prev => [...prev, data[0]]);
-      setNewTitle('');
-    } else {
-      alert('Lỗi thêm mục tiêu');
+    try {
+      const { data, error } = await supabase.from('goals').insert([newGoal]).select();
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const addedGoal = { ...data[0], is_done: false };
+        setGoals(prev => [...prev, addedGoal]);
+        setNewTitle('');
+      }
+    } catch (err: any) {
+      console.error('Goal insert failed:', err);
+      alert('Lỗi thêm mục tiêu: ' + err.message);
     }
   };
 

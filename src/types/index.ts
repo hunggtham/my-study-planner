@@ -29,8 +29,9 @@ export interface Goal {
   period_start_date: string;
   title: string;
   category: string;
-  is_done: boolean;
-  note: string;
+  status?: string;
+  is_done?: boolean;
+  note?: string;
   created_at?: string;
   updated_at?: string;
 }

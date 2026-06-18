@@ -4,7 +4,7 @@ import { getStatusMeta } from '../../utils/status';
 import { MoreVertical, Edit2, Trash2, ArrowRight, Copy } from 'lucide-react';
 import { CategoryBadge, PriorityBadge } from './TaskBadges';
 
-export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate, onMove, onEdit, onDelete, onDuplicate, readonlyMove }) => {
+export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate, onMove, onEdit, onDelete, onDuplicate, readonlyMove, isProcessing }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,7 +57,7 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate,
         </div>
       </div>
 
-      <div className="compact-actions" style={{ position: 'relative' }}>
+      <div className="compact-actions" style={{ position: 'relative', opacity: isProcessing ? 0.5 : 1, pointerEvents: isProcessing ? 'none' : 'auto' }}>
         <button className="icon-btn" onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: '0.25rem' }}>
           <MoreVertical size={16} />
         </button>

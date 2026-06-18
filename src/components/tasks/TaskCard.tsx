@@ -5,7 +5,7 @@ import { Clock, Settings2, Copy, Trash2, ArrowRight, ChevronDown, ChevronUp, Fil
 import { TaskStatus } from '../../types';
 import { CategoryBadge, PriorityBadge, StatusBadge } from './TaskBadges';
 
-export const TaskCard: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate, onMove, onEdit, onDelete, onDuplicate, readonlyMove }) => {
+export const TaskCard: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate, onMove, onEdit, onDelete, onDuplicate, readonlyMove, isProcessing }) => {
   const meta = getStatusMeta(task.status);
   const [expanded, setExpanded] = useState(false);
 
@@ -68,7 +68,7 @@ export const TaskCard: React.FC<BaseTaskDisplayProps> = ({ task, onUpdate, onMov
           })}
         </div>
 
-        <div className="task-actions-row" style={{ borderTop: 'none', paddingTop: 0, gap: '0.25rem' }}>
+        <div className="task-actions-row" style={{ borderTop: 'none', paddingTop: 0, gap: '0.25rem', opacity: isProcessing ? 0.5 : 1, pointerEvents: isProcessing ? 'none' : 'auto' }}>
           {!readonlyMove && task.status !== 'moved' && (
             <button className="secondary-btn icon-btn" onClick={() => onMove(task.id)} title="Dời ngày" style={{ padding: '0.3rem 0.5rem' }}>
               <ArrowRight size={14} /> <span className="hide-mobile" style={{ fontSize: '0.75rem' }}>Dời</span>

@@ -19,6 +19,7 @@ export const AttentionTasks: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Partial<Task> | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchAttentionTasks = async () => {
     if (!user) return;
@@ -62,6 +63,7 @@ export const AttentionTasks: React.FC = () => {
   }, [tasks, filter, sortBy]);
 
   const handleAction = async (taskId: string, action: string) => {
+    if (processingId) return;
     const today = format(new Date(), 'yyyy-MM-dd');
     const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
     
@@ -73,15 +75,41 @@ export const AttentionTasks: React.FC = () => {
     else if (action === 'move_tomorrow') patch = { date: tomorrow, status: 'todo' };
 
     if (Object.keys(patch).length > 0) {
+      setProcessingId(taskId);
+      const backup = tasks.find(t => t.id === taskId);
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...patch } : t));
-      await supabase.from('tasks').update(patch).eq('id', taskId);
+      
+      try {
+        const { error } = await supabase.from('tasks').update(patch).eq('id', taskId);
+        if (error) throw error;
+      } catch (err: any) {
+        console.error('Task update failed:', err);
+        alert('Không thể cập nhật dữ liệu. Vui lòng thử lại.');
+        if (backup) setTasks(prev => prev.map(t => t.id === taskId ? backup : t));
+      } finally {
+        setProcessingId(null);
+      }
     }
   };
 
   const handleDelete = async (taskId: string) => {
+    if (processingId) return;
     if (!window.confirm('Xác nhận xóa task này?')) return;
+    
+    setProcessingId(taskId);
+    const backup = [...tasks];
     setTasks(prev => prev.filter(t => t.id !== taskId));
-    await supabase.from('tasks').delete().eq('id', taskId);
+    
+    try {
+      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Task delete failed:', err);
+      alert('Không thể xóa dữ liệu. Vui lòng thử lại.');
+      setTasks(backup);
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleSaveForm = async (taskData: Partial<Task>) => {
@@ -146,6 +174,7 @@ export const AttentionTasks: React.FC = () => {
               onAction={handleAction}
               onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
               onDelete={handleDelete}
+              isProcessing={processingId === task.id}
             />
           ))}
         </div>
