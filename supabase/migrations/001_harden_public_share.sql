@@ -50,3 +50,4 @@ create index if not exists idx_tasks_user_id_status on tasks(user_id, status);
 create index if not exists idx_tasks_user_id_category on tasks(user_id, category);
 create index if not exists idx_goals_user_id_period on goals(user_id, period_type, period_start_date);
 create index if not exists idx_public_shares_slug on public_shares(slug);
+-- End of migration
