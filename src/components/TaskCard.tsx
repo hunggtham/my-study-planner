@@ -5,6 +5,9 @@ interface TaskCardProps {
   task: Task;
   onUpdate: (id: string, patch: Partial<Task>) => void;
   onMove: (id: string) => void;
+  onEdit?: (task: Task) => void;
+  onDelete?: (id: string) => void;
+  onDuplicate?: (task: Task) => void;
   readonlyMove?: boolean;
 }
 
@@ -22,13 +25,19 @@ const CATEGORY_CLASS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   todo: 'Chưa làm',
-  doing: 'Đang làm',
+  in_progress: 'Đang làm',
   done: 'Hoàn thành',
   moved: 'Đã dời',
   skipped: 'Bỏ qua'
 };
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onMove, readonlyMove }) => {
+const PRIORITY_LABELS: Record<string, string> = {
+  high: 'Cao',
+  medium: 'Vừa',
+  low: 'Thấp'
+};
+
+export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onMove, onEdit, onDelete, onDuplicate, readonlyMove }) => {
   const categoryClass = CATEGORY_CLASS[task.category] || 'cat-default';
   const done = task.status === 'done';
 
@@ -37,7 +46,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onMove, read
       <div className="task-top">
         <span className="task-time">{task.start_time} - {task.end_time}</span>
         <span className={`category ${categoryClass}`}>{task.category}</span>
-        <span className="priority">{task.priority}</span>
+        <span className="priority">{PRIORITY_LABELS[task.priority] || task.priority}</span>
       </div>
 
       <div className="task-main">
@@ -71,9 +80,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onMove, read
         />
       </label>
 
-      <div className="task-actions">
+      <div className="task-actions-row">
         {!readonlyMove && task.status !== 'moved' && (
-          <button className="secondary" onClick={() => onMove(task.id)}>Dời sang ngày mai</button>
+          <button className="secondary-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onMove(task.id)}>Dời ngày</button>
+        )}
+        {onEdit && (
+          <button className="secondary-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onEdit(task)}>Sửa</button>
+        )}
+        {onDuplicate && (
+          <button className="secondary-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onDuplicate(task)}>Nhân bản</button>
+        )}
+        {onDelete && (
+          <button className="danger-btn" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => onDelete(task.id)}>Xóa</button>
         )}
       </div>
     </article>

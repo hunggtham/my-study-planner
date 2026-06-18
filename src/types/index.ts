@@ -1,6 +1,6 @@
-export type TaskStatus = 'todo' | 'doing' | 'done' | 'skipped' | 'moved';
-export type TaskPriority = 'Cao' | 'Vừa' | 'Thấp';
-export type TaskType = 'main' | 'optional' | 'health' | 'review';
+export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'skipped' | 'moved';
+export type TaskPriority = 'high' | 'medium' | 'low';
+export type TaskType = 'main' | 'secondary' | 'exercise' | 'review' | 'class' | 'optional';
 
 export interface Task {
   id: string;

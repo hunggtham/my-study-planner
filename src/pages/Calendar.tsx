@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Task } from '../types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from 'date-fns';
-import { vi } from 'date-fns/locale';
 
 export const CalendarView: React.FC = () => {
   const { user } = useAuth();

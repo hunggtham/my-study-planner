@@ -11,9 +11,9 @@ create table tasks (
   category varchar(255) not null,
   title varchar(255) not null,
   description text,
-  task_type varchar(50) default 'main',
-  status varchar(50) default 'todo',
-  priority varchar(50) default 'medium',
+  task_type varchar(50) default 'main' check (task_type in ('main', 'secondary', 'exercise', 'review', 'class', 'optional')),
+  status varchar(50) default 'todo' check (status in ('todo', 'in_progress', 'done', 'skipped', 'moved')),
+  priority varchar(50) default 'medium' check (priority in ('high', 'medium', 'low')),
   score_weight int default 1,
   moved_from_task_id uuid references tasks(id) on delete set null,
   moved_count int default 0,
@@ -26,7 +26,7 @@ create table tasks (
 create table goals (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade not null,
-  period_type varchar(50) not null, -- 'week' or 'month'
+  period_type varchar(50) not null check (period_type in ('week', 'month')),
   period_start_date varchar(50) not null,
   title text not null,
   category varchar(255),
@@ -80,6 +80,41 @@ create policy "Public can view goals if shared" on goals for select using (
   )
 );
 
+-- Public Dashboard RPC Function for secure read-only access
+create or replace function get_public_dashboard_by_slug(p_slug text)
+returns table (
+  id uuid,
+  date date,
+  category varchar,
+  title varchar,
+  status varchar,
+  task_type varchar,
+  priority varchar
+)
+language plpgsql
+security definer
+as $$
+declare
+  target_user_id uuid;
+begin
+  -- Find the user_id for the active slug
+  select user_id into target_user_id 
+  from public_shares 
+  where slug = p_slug and is_active = true;
+
+  if target_user_id is null then
+    return;
+  end if;
+
+  -- Return only safe fields
+  return query
+  select t.id, t.date, t.category, t.title, t.status, t.task_type, t.priority
+  from tasks t
+  where t.user_id = target_user_id
+  order by t.date desc, t.start_time asc;
+end;
+$$;
+
 -- Policies for public_shares
 create policy "Anyone can view active public shares" on public_shares for select using (is_active = true);
 create policy "Users can view their own share settings" on public_shares for select using (auth.uid() = user_id);
@@ -88,7 +123,8 @@ create policy "Users can update their own share settings" on public_shares for u
 create policy "Users can delete their own share settings" on public_shares for delete using (auth.uid() = user_id);
 
 -- Indexes for performance
-create index idx_tasks_user_id on tasks(user_id);
-create index idx_tasks_date on tasks(date);
-create index idx_goals_user_id on goals(user_id);
-create index idx_public_shares_slug on public_shares(slug);
+create index if not exists idx_tasks_user_id_date on tasks(user_id, date);
+create index if not exists idx_tasks_user_id_status on tasks(user_id, status);
+create index if not exists idx_tasks_user_id_category on tasks(user_id, category);
+create index if not exists idx_goals_user_id_period on goals(user_id, period_type, period_start_date);
+create index if not exists idx_public_shares_slug on public_shares(slug);

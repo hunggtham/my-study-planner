@@ -1,50 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Task } from '../types';
+
+interface PublicTask {
+  id: string;
+  date: string;
+  category: string;
+  title: string;
+  status: string;
+  task_type: string;
+  priority: string;
+}
 
 export const SharedDashboard: React.FC = () => {
   const { slug } = useParams();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<PublicTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchSharedData = async () => {
       setLoading(true);
-      // Fetch public_shares to get user_id
-      const { data: shareData, error: shareError } = await supabase
-        .from('public_shares')
-        .select('user_id')
-        .eq('slug', slug)
-        .eq('is_active', true)
-        .single();
+      
+      const { data, error } = await supabase.rpc('get_public_dashboard_by_slug', { p_slug: slug });
 
-      if (shareError || !shareData) {
-        setError('Link chia sẻ không tồn tại hoặc đã bị vô hiệu hóa.');
-        setLoading(false);
-        return;
-      }
-
-      // We have access! Fetch tasks for this user
-      // RLS allows this if 'Public can view tasks if shared' is correct.
-      // Wait, RLS uses the existence of public_shares. 
-      // It's easier if we just query tasks using eq('user_id', shareData.user_id) 
-      // and let RLS verify it, but since we are unauthenticated, we just do it directly.
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', shareData.user_id);
-
-      if (tasksError) {
-        setError('Không thể tải dữ liệu.');
-      } else if (tasksData) {
-        setTasks(tasksData);
+      if (error) {
+        setError('Không thể tải dữ liệu: ' + error.message);
+      } else if (!data || data.length === 0) {
+        // RPC returns empty if slug invalid or no tasks
+        setError('Link chia sẻ không tồn tại, đã bị vô hiệu hóa, hoặc người dùng chưa có task nào.');
+      } else {
+        setTasks(data);
       }
       setLoading(false);
     };
 
-    fetchSharedData();
+    if (slug) {
+      fetchSharedData();
+    }
   }, [slug]);
 
   if (loading) return <div className="loading-screen">Đang tải dashboard công khai...</div>;
@@ -73,12 +66,19 @@ export const SharedDashboard: React.FC = () => {
       </div>
 
       <div className="card">
-        <h3>Các task gần đây (5 task)</h3>
+        <h3>Các task gần đây (20 task)</h3>
         <ul style={{ marginTop: '1rem', listStyle: 'none', padding: 0 }}>
-          {tasks.slice(0, 5).map(t => (
-            <li key={t.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
-              <span style={{ display: 'inline-block', width: '24px' }}>{t.status === 'done' ? '✅' : '⏳'}</span>
-              <span>[{t.category}] {t.title}</span>
+          {tasks.slice(0, 20).map(t => (
+            <li key={t.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem' }}>
+              <span style={{ display: 'inline-block', width: '24px' }}>
+                {t.status === 'done' ? '✅' : t.status === 'skipped' ? '⏭️' : t.status === 'moved' ? '➡️' : '⏳'}
+              </span>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '0.25rem' }}>{t.title}</strong>
+                <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                  {t.date} | {t.category} | {t.priority}
+                </span>
+              </div>
             </li>
           ))}
         </ul>

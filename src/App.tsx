@@ -13,6 +13,7 @@ import { Stats } from './pages/Stats';
 import { Goals } from './pages/Goals';
 import { SharedDashboard } from './pages/SharedDashboard';
 import './styles-calendar.css';
+import './styles-taskform.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { session, loading } = useAuth();

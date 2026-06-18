@@ -1,57 +1,90 @@
 # Study Planner - Cloud Synced
 
-A React + Vite study planner designed to be usable across devices, synced via Supabase.
+A robust React + Vite study planner configured for daily use with a safe, cloud-synced Supabase backend.
 
-## Tech Stack
+## Architecture
 - Frontend: React + Vite + TypeScript + React Router
-- Backend: Supabase (PostgreSQL, Auth, RLS)
-- UI: Vanilla CSS with custom design system
+- Backend: Supabase (PostgreSQL, Auth, RLS, RPCs)
+- UI: Vanilla CSS, mobile-friendly dark theme.
 
-## Getting Started
+---
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
+## 1. Local Development Setup
 
-2. **Supabase Setup**
-   - Create a new project on [Supabase](https://supabase.com).
-   - Go to the SQL Editor in Supabase and run the queries found in `supabase/schema.sql`.
-   - Ensure you have Authentication (Email) enabled.
+### Install Dependencies
+```bash
+npm install
+```
 
-3. **Environment Variables**
-   - Copy `.env.example` to `.env.local`
-   - Fill in your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+### Configure Environment Variables
+Copy the example environment file:
+```bash
+cp .env.example .env.local
+```
+Then, edit `.env.local` and add your Supabase details (see section below).
 
-4. **Run Locally**
-   ```bash
-   npm run dev
-   ```
+### Start Development Server
+```bash
+npm run dev
+```
 
-## Local Data Migration
-If you used the previous version of this planner (which stored data in `localStorage`), you can migrate your data to the cloud:
-1. Register/Login to the app.
-2. Go to the **Cài đặt** (Settings) tab.
-3. Click **Đồng bộ từ LocalStorage**.
+### Check TypeScript / Build
+```bash
+npm run build
+```
+This will run `tsc` and ensure there are no typing errors before building the production bundle.
 
-## Deployment
+---
 
-### Vercel
-1. Import project in Vercel.
-2. Framework Preset: `Vite`
-3. Build Command: `npm run build`
-4. Output Directory: `dist`
-5. Add Environment Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+## 2. Supabase Setup Instructions
 
-### Netlify
-1. Import project in Netlify.
-2. Build command: `npm run build`
-3. Publish directory: `dist`
-4. Add Environment Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+1. Go to [Supabase](https://supabase.com) and create a new project.
+2. Once provisioned, go to **Project Settings > API**.
+3. Copy the **Project URL** and paste it into `.env.local` as `VITE_SUPABASE_URL`.
+4. Copy the **anon public key** and paste it into `.env.local` as `VITE_SUPABASE_ANON_KEY`.
+   - *Security Note: Do NOT use the service_role key here.*
+5. Go to **Authentication > Providers** and ensure **Email** is enabled.
+6. Go to the **SQL Editor** in your Supabase dashboard.
+7. Open the file `supabase/schema.sql` from this repository.
+8. Copy all the text in `supabase/schema.sql` and paste it into the Supabase SQL Editor, then click **Run**. This sets up all tables, indexes, constraints, RLS policies, and the RPC function for public sharing.
 
-## Features
-- **Hôm nay**: View today's tasks and overdue tasks. Move tasks easily.
-- **Lịch tháng**: Monthly visual calendar to track consistency.
-- **Mục tiêu**: Weekly and monthly checklist tracking.
-- **Thống kê**: Visual breakdown of your progress across different subjects.
-- **Chia sẻ công khai**: Create a read-only dashboard link to share your progress with friends.
+---
+
+## 3. Public Share Feature (Testing)
+
+The app includes a feature to generate a "public read-only" link to show your progress to friends.
+- Go to the **Cài đặt** (Settings) tab in the app.
+- Click **Tạo link chia sẻ**.
+- Copy the link and open it in an Incognito/Private window.
+- The dashboard will load and safely display only your completion stats and task names using a secure Supabase RPC function. Private notes and internal IDs are completely hidden.
+
+---
+
+## 4. Deployment Instructions
+
+### Deploy to Vercel
+1. Push your repository to GitHub.
+2. Go to Vercel and **Add New Project**, selecting your repository.
+3. Vercel will automatically detect the **Vite** framework.
+4. **Build Command**: `npm run build`
+5. **Output Directory**: `dist`
+6. Open the **Environment Variables** section and add:
+   - `VITE_SUPABASE_URL` = your_project_url
+   - `VITE_SUPABASE_ANON_KEY` = your_anon_key
+7. Click **Deploy**.
+
+### Deploy to Netlify
+1. Push your repository to GitHub.
+2. Go to Netlify and **Add new site > Import an existing project**, selecting your repository.
+3. **Build command**: `npm run build`
+4. **Publish directory**: `dist`
+5. Click **Show advanced** and add your Environment Variables:
+   - `VITE_SUPABASE_URL` = your_project_url
+   - `VITE_SUPABASE_ANON_KEY` = your_anon_key
+6. Click **Deploy site**.
+
+---
+
+## Known Limitations & Next Steps
+- **Bulk Creation**: Currently, you can create, duplicate, and move tasks individually. Full bulk creation for recurring dates (e.g. "Every Monday") is not fully automated in the UI yet and requires manual duplication.
+- **Offline Mode**: While data is cached during the session, full offline PWA support is not yet implemented. If the internet drops, Supabase requests will fail.
