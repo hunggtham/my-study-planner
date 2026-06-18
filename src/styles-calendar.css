@@ -1,0 +1,59 @@
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  background: var(--border-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.calendar-header-cell {
+  background: var(--bg-panel);
+  padding: 0.75rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.calendar-cell {
+  background: var(--bg-dark);
+  min-height: 100px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-cell.empty {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+.calendar-cell.today {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--primary);
+}
+
+.cell-date {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.cell-stats {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.cell-progress {
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--success);
+}
