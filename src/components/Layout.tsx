@@ -16,28 +16,24 @@ export const Layout: React.FC = () => {
         
         <nav className="nav-menu">
           <NavLink to="/" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <BarChart2 size={20} />
+            <span>Dashboard</span>
+          </NavLink>
+          <NavLink to="/schedule" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
             <CheckSquare size={20} />
-            <span>Hôm nay</span>
+            <span>Lịch trình</span>
           </NavLink>
           <NavLink to="/calendar" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
             <Calendar size={20} />
             <span>Lịch tháng</span>
           </NavLink>
-          <NavLink to="/stats" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
-            <BarChart2 size={20} />
-            <span>Thống kê</span>
-          </NavLink>
-          <NavLink to="/weekly" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
-            <Target size={20} />
-            <span>Mục tiêu tuần</span>
-          </NavLink>
-          <NavLink to="/monthly" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
-            <Target size={20} />
-            <span>Mục tiêu tháng</span>
-          </NavLink>
           <NavLink to="/moved" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
             <Clock size={20} />
             <span>Task đã dời</span>
+          </NavLink>
+          <NavLink to="/goals" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <Target size={20} />
+            <span>Mục tiêu</span>
           </NavLink>
           <NavLink to="/settings" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
             <Settings size={20} />

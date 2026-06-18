@@ -5,11 +5,11 @@ import { Login } from './pages/Login';
 import './styles.css'; // Global styles (we will update this later)
 
 import { Layout } from './components/Layout';
-import { Today } from './pages/Today';
+import { Schedule } from './pages/Schedule';
 import { CalendarView } from './pages/Calendar';
 import { Settings } from './pages/Settings';
 import { MovedTasks } from './pages/MovedTasks';
-import { Stats } from './pages/Stats';
+import { Dashboard } from './pages/Dashboard';
 import { Goals } from './pages/Goals';
 import { SharedDashboard } from './pages/SharedDashboard';
 import './styles-calendar.css';
@@ -34,11 +34,10 @@ export const App: React.FC = () => {
             <Layout />
           </ProtectedRoute>
         }>
-          <Route index element={<Today />} />
+          <Route index element={<Dashboard />} />
+          <Route path="schedule" element={<Schedule />} />
           <Route path="calendar" element={<CalendarView />} />
-          <Route path="stats" element={<Stats />} />
-          <Route path="weekly" element={<Goals periodType="week" />} />
-          <Route path="monthly" element={<Goals periodType="month" />} />
+          <Route path="goals" element={<Goals />} />
           <Route path="moved" element={<MovedTasks />} />
           <Route path="settings" element={<Settings />} />
         </Route>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { Navigate } from 'react-router-dom';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,7 +12,7 @@ export const Login: React.FC = () => {
   const { session } = useAuth();
 
   if (session) {
-    return <div>Đã đăng nhập</div>; // Will be redirected by App.tsx
+    return <Navigate to="/" replace />;
   }
 
   const handleAuth = async (e: React.FormEvent) => {

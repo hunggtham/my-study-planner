@@ -4,15 +4,16 @@ import { useAuth } from '../hooks/useAuth';
 import { Task } from '../types';
 import { TaskDisplay } from '../components/tasks/TaskDisplay';
 import { TaskForm } from '../components/TaskForm';
-import { format } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { PartyPopper } from 'lucide-react';
+import { PartyPopper, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export const Today: React.FC = () => {
+export const Schedule: React.FC = () => {
   const { user } = useAuth();
+  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalTaskCount, setTotalTaskCount] = useState(0);
   const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'compact'>(() => {
     return (localStorage.getItem('study-planner-today-view-mode') as any) || 'list';
   });
@@ -26,36 +27,36 @@ export const Today: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Partial<Task> | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchTodayTasks = async () => {
+  const fetchScheduleTasks = async () => {
     if (!user) return;
     setLoading(true);
-    const today = format(new Date(), 'yyyy-MM-dd');
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     
-    // We want: today's tasks OR (date < today AND status in 'todo', 'in_progress')
-    // Supabase allows OR filters.
+    // Fetch selected date OR overdue tasks
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
       .eq('user_id', user.id)
-      .or(`date.eq.${today},and(date.lt.${today},status.in.(todo,in_progress))`)
+      .or(`date.eq.${selectedDate},and(date.lt.${todayStr},status.in.(todo,in_progress))`)
       .order('date', { ascending: true })
       .order('start_time', { ascending: true });
       
     if (error) {
       console.error(error);
     } else {
-      setTasks(data || []);
-      if (!data || data.length === 0) {
-        const { count } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
-        setTotalTaskCount(count || 0);
-      }
+      const allFetched = data || [];
+      const dayTasks = allFetched.filter(t => t.date === selectedDate);
+      const overdue = allFetched.filter(t => t.date !== selectedDate && t.date < todayStr && ['todo', 'in_progress'].includes(t.status));
+      
+      setTasks(dayTasks);
+      setOverdueTasks(overdue);
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchTodayTasks();
-  }, [user]);
+    fetchScheduleTasks();
+  }, [user, selectedDate]);
 
   const updateTask = async (id: string, patch: Partial<Task>) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
@@ -76,7 +77,7 @@ export const Today: React.FC = () => {
         if (error) throw error;
       }
       setIsFormOpen(false);
-      fetchTodayTasks();
+      fetchScheduleTasks();
     } catch (err: any) {
       alert('Lỗi: ' + err.message);
     } finally {
@@ -121,7 +122,7 @@ export const Today: React.FC = () => {
     };
     
     await supabase.from('tasks').insert([newTask]);
-    fetchTodayTasks();
+    fetchScheduleTasks();
   };
 
   const completedCount = tasks.filter(t => t.status === 'done').length;
@@ -139,8 +140,8 @@ export const Today: React.FC = () => {
       <header className="page-header today-header" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'stretch' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1>Hôm nay</h1>
-            <p className="text-muted">{format(new Date(), 'EEEE, dd MMMM, yyyy', { locale: vi })}</p>
+            <h1>Lịch trình</h1>
+            <p className="text-muted">Quản lý task theo ngày</p>
           </div>
           
           <div className="header-stats-row" style={{ display: 'flex', gap: '1rem' }}>
@@ -159,13 +160,32 @@ export const Today: React.FC = () => {
           </div>
         </div>
 
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '8px' }}>
+          <button className="secondary-btn icon-btn" onClick={() => setSelectedDate(format(subDays(new Date(selectedDate), 1), 'yyyy-MM-dd'))} title="Ngày trước">
+            <ChevronLeft size={18}/>
+          </button>
+          <input 
+            type="date" 
+            value={selectedDate} 
+            onChange={(e) => e.target.value && setSelectedDate(e.target.value)} 
+            style={{ background: 'transparent', color: 'var(--text-main)', border: 'none', outline: 'none', padding: '0.5rem', cursor: 'pointer', fontWeight: 600 }} 
+          />
+          <button className="secondary-btn" onClick={() => setSelectedDate(format(new Date(), 'yyyy-MM-dd'))}>Hôm nay</button>
+          <button className="secondary-btn icon-btn" onClick={() => setSelectedDate(format(addDays(new Date(selectedDate), 1), 'yyyy-MM-dd'))} title="Ngày sau">
+            <ChevronRight size={18}/>
+          </button>
+          <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>
+            {format(new Date(selectedDate), 'EEEE', { locale: vi })}
+          </span>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div className="segmented-control">
             <button className={`segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>List</button>
             <button className={`segmented-btn ${viewMode === 'timeline' ? 'active' : ''}`} onClick={() => setViewMode('timeline')}>Timeline</button>
             <button className={`segmented-btn ${viewMode === 'compact' ? 'active' : ''}`} onClick={() => setViewMode('compact')}>Compact</button>
           </div>
-          <button className="primary-btn" style={{ width: 'auto', margin: 0 }} onClick={() => { setEditingTask(undefined); setIsFormOpen(true); }}>
+          <button className="primary-btn" style={{ width: 'auto', margin: 0 }} onClick={() => { setEditingTask({ date: selectedDate }); setIsFormOpen(true); }}>
             + Thêm Task
           </button>
         </div>
@@ -173,25 +193,41 @@ export const Today: React.FC = () => {
 
       {loading ? (
         <div className="loading-state">Đang tải...</div>
-      ) : tasks.length === 0 ? (
-        <div className="empty-state card" style={{ textAlign: 'center', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <PartyPopper size={48} color="var(--primary)" style={{ marginBottom: '1rem', opacity: 0.8 }} />
-          {totalTaskCount > 0 ? (
-            <>
-              <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Tuyệt vời! Không có task nào cần làm ngay.</p>
-              <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>Bạn có task trong database, nhưng không có task nào thuộc hôm nay hoặc quá hạn. Hãy mở tab Lịch tháng để xem toàn bộ lịch.</p>
-            </>
-          ) : (
-            <>
-              <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Chưa có task nào.</p>
-              <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>Hãy thêm task mới để bắt đầu học tập!</p>
-            </>
-          )}
-          <button className="primary-btn" style={{ width: 'auto' }} onClick={() => { setEditingTask(undefined); setIsFormOpen(true); }}>
-            + Thêm Task Mới
-          </button>
-        </div>
       ) : (
+        <>
+          {overdueTasks.length > 0 && (
+            <div className="overdue-section" style={{ marginBottom: '2rem' }}>
+              <h3 style={{ color: 'var(--warning)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--warning)', display: 'inline-block' }} />
+                Task quá hạn chưa hoàn thành ({overdueTasks.length})
+              </h3>
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                {overdueTasks.map(task => (
+                  <TaskDisplay 
+                    key={task.id} 
+                    variant="compact"
+                    task={task} 
+                    onUpdate={updateTask} 
+                    onMove={moveToTomorrow}
+                    onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tasks.length === 0 ? (
+            <div className="empty-state card" style={{ textAlign: 'center', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <PartyPopper size={48} color="var(--primary)" style={{ marginBottom: '1rem', opacity: 0.8 }} />
+              <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Chưa có task nào cho ngày này.</p>
+              <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>Thêm task mới hoặc mở Lịch tháng để lên lịch.</p>
+              <button className="primary-btn" style={{ width: 'auto' }} onClick={() => { setEditingTask({ date: selectedDate }); setIsFormOpen(true); }}>
+                + Thêm Task
+              </button>
+            </div>
+          ) : (
         <div className="task-views-container" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {viewMode === 'list' && (
             <div className="task-groups" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -288,6 +324,8 @@ export const Today: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+      </>
       )}
 
       {isFormOpen && (
