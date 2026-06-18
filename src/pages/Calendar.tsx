@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Task } from '../types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { TaskCard } from '../components/TaskCard';
+import { TaskDisplay } from '../components/tasks/TaskDisplay';
 import { TaskForm } from '../components/TaskForm';
 import { GoalsPanel } from '../components/GoalsPanel';
 import { FolderOpen } from 'lucide-react';
@@ -281,10 +281,11 @@ export const CalendarView: React.FC = () => {
                             <span>Ngày này chưa có task. Thêm task mới?</span>
                           </div>
                         ) : (
-                          <div className="task-list">
+                          <div className="task-list card" style={{ padding: 0, overflow: 'hidden' }}>
                             {dayTasks.map(task => (
-                              <TaskCard 
+                              <TaskDisplay 
                                 key={task.id} 
+                                variant="compact"
                                 task={task} 
                                 onUpdate={updateTask}
                                 onMove={moveToTomorrow}
@@ -307,15 +308,17 @@ export const CalendarView: React.FC = () => {
             <div className="task-groups" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               {days.filter(day => tasks.some(t => isSameDay(new Date(t.date), day))).map(day => {
                 const dayTasks = tasks.filter(t => isSameDay(new Date(t.date), day));
+                const doneCount = dayTasks.filter(t => t.status === 'done').length;
                 return (
                   <div key={day.toString()} className="task-group">
                     <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                      {format(day, 'EEEE, dd/MM/yyyy', { locale: vi })} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>({dayTasks.length})</span>
+                      {format(day, 'EEEE, dd/MM/yyyy', { locale: vi })} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>({doneCount}/{dayTasks.length})</span>
                     </h3>
-                    <div className="task-list">
+                    <div className="task-list card" style={{ padding: 0, overflow: 'hidden' }}>
                       {dayTasks.map(task => (
-                        <TaskCard 
+                        <TaskDisplay 
                           key={task.id} 
+                          variant="compact"
                           task={task} 
                           onUpdate={updateTask}
                           onMove={moveToTomorrow}
@@ -337,25 +340,21 @@ export const CalendarView: React.FC = () => {
               return a.start_time.localeCompare(b.start_time);
             });
             return (
-              <div className="timeline-view" style={{ marginLeft: '4rem' }}>
-                {timedTasks.map(task => (
-                  <div key={task.id} className="timeline-item">
-                    <div className="timeline-time" style={{ left: '-5rem', width: '4rem' }}>
-                      <div style={{ fontSize: '0.7rem' }}>{format(new Date(task.date), 'dd/MM')}</div>
-                      <div>{task.start_time}</div>
-                    </div>
-                    <div className="timeline-content">
-                      <TaskCard 
-                        task={task} 
-                        onUpdate={updateTask}
-                        onMove={moveToTomorrow}
-                        onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
-                        onDelete={handleDelete}
-                        onDuplicate={handleDuplicate}
-                      />
-                    </div>
-                  </div>
-                ))}
+              <div className="timeline-view-container" style={{ paddingLeft: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {timedTasks.map(task => (
+                    <TaskDisplay 
+                      key={task.id} 
+                      variant="timeline"
+                      task={task} 
+                      onUpdate={updateTask}
+                      onMove={moveToTomorrow}
+                      onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                    />
+                  ))}
+                </div>
               </div>
             );
           })()}

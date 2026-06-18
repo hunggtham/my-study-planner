@@ -77,3 +77,27 @@
   height: 100%;
   background: var(--success);
 }
+
+@media (max-width: 768px) {
+  .calendar-grid {
+    overflow-x: auto;
+    font-size: 0.8rem;
+  }
+  .calendar-cell {
+    min-height: 80px;
+    padding: 0.25rem;
+  }
+  .week-goal-btn {
+    padding: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-cell {
+    min-height: 60px;
+  }
+  .calendar-header-cell {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.75rem;
+  }
+}

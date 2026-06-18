@@ -2,11 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Task } from '../types';
-import { TaskCard } from '../components/TaskCard';
+import { TaskDisplay } from '../components/tasks/TaskDisplay';
 import { TaskForm } from '../components/TaskForm';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { getStatusMeta } from '../utils/status';
 import { PartyPopper } from 'lucide-react';
 
 export const Today: React.FC = () => {
@@ -137,24 +136,38 @@ export const Today: React.FC = () => {
 
   return (
     <div className="page-container">
-      <header className="page-header" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1>Hôm nay</h1>
-          <p className="text-muted">{format(new Date(), 'EEEE, dd MMMM, yyyy', { locale: vi })}</p>
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="primary-btn" style={{ width: 'auto', marginTop: 0 }} onClick={() => { setEditingTask(undefined); setIsFormOpen(true); }}>
-              + Thêm Task
-            </button>
-            <div className="segmented-control">
-              <button className={`segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>List</button>
-              <button className={`segmented-btn ${viewMode === 'timeline' ? 'active' : ''}`} onClick={() => setViewMode('timeline')}>Timeline</button>
-              <button className={`segmented-btn ${viewMode === 'compact' ? 'active' : ''}`} onClick={() => setViewMode('compact')}>Compact</button>
+      <header className="page-header today-header" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1>Hôm nay</h1>
+            <p className="text-muted">{format(new Date(), 'EEEE, dd MMMM, yyyy', { locale: vi })}</p>
+          </div>
+          
+          <div className="header-stats-row" style={{ display: 'flex', gap: '1rem' }}>
+            <div className="stat-box" style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{tasks.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tổng</div>
+            </div>
+            <div className="stat-box" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.5rem 1rem', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--success)' }}>{completedCount}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}>Xong ({progress}%)</div>
+            </div>
+            <div className="stat-box" style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.5rem 1rem', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--warning)' }}>{tasks.filter(t => t.status === 'moved').length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--warning)' }}>Dời</div>
             </div>
           </div>
         </div>
-        <div className="progress-badge">
-          <span>{progress}% Hoàn thành</span>
-          <span>{completedCount} / {tasks.length}</span>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div className="segmented-control">
+            <button className={`segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>List</button>
+            <button className={`segmented-btn ${viewMode === 'timeline' ? 'active' : ''}`} onClick={() => setViewMode('timeline')}>Timeline</button>
+            <button className={`segmented-btn ${viewMode === 'compact' ? 'active' : ''}`} onClick={() => setViewMode('compact')}>Compact</button>
+          </div>
+          <button className="primary-btn" style={{ width: 'auto', margin: 0 }} onClick={() => { setEditingTask(undefined); setIsFormOpen(true); }}>
+            + Thêm Task
+          </button>
         </div>
       </header>
 
@@ -181,27 +194,36 @@ export const Today: React.FC = () => {
       ) : (
         <div className="task-views-container" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {viewMode === 'list' && (
-            <div className="task-groups" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              {Object.entries(groups).map(([category, catTasks]) => (
-                <div key={category} className="task-group">
-                  <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                    {category} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>({catTasks.length})</span>
-                  </h3>
-                  <div className="task-list">
-                    {catTasks.map(task => (
-                      <TaskCard 
-                        key={task.id} 
-                        task={task} 
-                        onUpdate={updateTask} 
-                        onMove={moveToTomorrow}
-                        onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
-                        onDelete={handleDelete}
-                        onDuplicate={handleDuplicate}
-                      />
-                    ))}
+            <div className="task-groups" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {Object.entries(groups).map(([category, catTasks]) => {
+                const catDone = catTasks.filter(t => t.status === 'done').length;
+                return (
+                  <div key={category} className="task-group">
+                    <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                      <h3 style={{ fontSize: '1.1rem', margin: 0 }}>
+                        {category} <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>({catDone}/{catTasks.length})</span>
+                      </h3>
+                      <div style={{ width: '60px', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ width: `${(catDone/catTasks.length)*100}%`, height: '100%', background: 'var(--success)' }}></div>
+                      </div>
+                    </div>
+                    <div className="task-list" style={{ gap: '0.75rem' }}>
+                      {catTasks.map(task => (
+                        <TaskDisplay 
+                          key={task.id} 
+                          variant="card"
+                          task={task} 
+                          onUpdate={updateTask} 
+                          onMove={moveToTomorrow}
+                          onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                          onDelete={handleDelete}
+                          onDuplicate={handleDuplicate}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -210,30 +232,30 @@ export const Today: React.FC = () => {
             const noTimeTasks = tasks.filter(t => !t.start_time);
 
             return (
-              <div className="timeline-view">
-                {timedTasks.map(task => (
-                  <div key={task.id} className="timeline-item">
-                    <div className="timeline-time">{task.start_time}</div>
-                    <div className="timeline-content">
-                      <TaskCard 
-                        task={task} 
-                        onUpdate={updateTask} 
-                        onMove={moveToTomorrow}
-                        onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
-                        onDelete={handleDelete}
-                        onDuplicate={handleDuplicate}
-                      />
-                    </div>
-                  </div>
-                ))}
+              <div className="timeline-view-container" style={{ paddingLeft: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {timedTasks.map(task => (
+                    <TaskDisplay 
+                      key={task.id} 
+                      variant="timeline"
+                      task={task} 
+                      onUpdate={updateTask} 
+                      onMove={moveToTomorrow}
+                      onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                    />
+                  ))}
+                </div>
 
                 {noTimeTasks.length > 0 && (
-                  <div className="timeline-item">
-                    <div className="timeline-time">No time</div>
-                    <div className="timeline-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ marginTop: '2rem' }}>
+                    <h4 style={{ color: 'var(--text-muted)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Chưa đặt giờ</h4>
+                    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                       {noTimeTasks.map(task => (
-                        <TaskCard 
+                        <TaskDisplay 
                           key={task.id} 
+                          variant="compact"
                           task={task} 
                           onUpdate={updateTask} 
                           onMove={moveToTomorrow}
@@ -250,27 +272,19 @@ export const Today: React.FC = () => {
           })()}
 
           {viewMode === 'compact' && (
-            <div className="compact-view card">
-              {tasks.map(task => {
-                const meta = getStatusMeta(task.status);
-                const Icon = meta.icon;
-                return (
-                  <div key={task.id} className="compact-item" style={{ borderLeft: `3px solid var(--${meta.intent === 'neutral' ? 'text-muted' : meta.intent})` }}>
-                    <div className="compact-main">
-                      <button 
-                        className="compact-done-btn" 
-                        onClick={() => updateTask(task.id, { status: task.status === 'done' ? 'todo' : 'done' })}
-                      >
-                        <Icon size={18} className={task.status === 'done' ? 'is-done' : ''} />
-                      </button>
-                      <div className="compact-info">
-                        <span className={`compact-title ${task.status === 'done' ? 'is-done' : ''}`}>{task.title}</span>
-                        <span className="compact-meta">{task.category} • {task.start_time || 'No time'}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="compact-view card" style={{ padding: 0 }}>
+              {tasks.map(task => (
+                <TaskDisplay 
+                  key={task.id} 
+                  variant="compact"
+                  task={task} 
+                  onUpdate={updateTask} 
+                  onMove={moveToTomorrow}
+                  onEdit={(t) => { setEditingTask(t); setIsFormOpen(true); }}
+                  onDelete={handleDelete}
+                  onDuplicate={handleDuplicate}
+                />
+              ))}
             </div>
           )}
         </div>
