@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface StatCardProps {
   label: string;
@@ -7,7 +7,12 @@ interface StatCardProps {
   icon?: React.ReactNode;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ label, value, detail, icon }) => {
+export const StatCard: React.FC<StatCardProps> = ({
+  label,
+  value,
+  detail,
+  icon,
+}) => {
   return (
     <div className="stat-card">
       <div className="stat-card-header">

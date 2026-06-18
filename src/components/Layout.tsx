@@ -1,7 +1,14 @@
-import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { LogOut, Settings, Calendar, CheckSquare, Target, BarChart2 } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import React from "react";
+import { NavLink, Outlet } from "react-router-dom";
+import {
+  LogOut,
+  Settings,
+  Calendar,
+  CheckSquare,
+  Target,
+  BarChart2,
+} from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 
 export const Layout: React.FC = () => {
   const { signOut, user } = useAuth();
@@ -13,25 +20,50 @@ export const Layout: React.FC = () => {
           <h2>Study Planner</h2>
           <span className="version">Cloud Sync</span>
         </div>
-        
+
         <nav className="nav-menu">
-          <NavLink to="/" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              isActive ? "nav-item active" : "nav-item"
+            }
+          >
             <BarChart2 size={20} />
             <span>Dashboard</span>
           </NavLink>
-          <NavLink to="/schedule" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+          <NavLink
+            to="/schedule"
+            className={({ isActive }) =>
+              isActive ? "nav-item active" : "nav-item"
+            }
+          >
             <CheckSquare size={20} />
             <span>Lịch trình</span>
           </NavLink>
-          <NavLink to="/calendar" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+          <NavLink
+            to="/calendar"
+            className={({ isActive }) =>
+              isActive ? "nav-item active" : "nav-item"
+            }
+          >
             <Calendar size={20} />
             <span>Lịch tháng</span>
           </NavLink>
-          <NavLink to="/goals" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+          <NavLink
+            to="/goals"
+            className={({ isActive }) =>
+              isActive ? "nav-item active" : "nav-item"
+            }
+          >
             <Target size={20} />
             <span>Mục tiêu</span>
           </NavLink>
-          <NavLink to="/settings" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              isActive ? "nav-item active" : "nav-item"
+            }
+          >
             <Settings size={20} />
             <span>Cài đặt</span>
           </NavLink>
@@ -47,7 +79,7 @@ export const Layout: React.FC = () => {
           </button>
         </div>
       </aside>
-      
+
       <main className="main-content">
         <Outlet />
       </main>

@@ -1,49 +1,55 @@
-import { TaskStatus } from '../types';
-import { CircleDashed, PlayCircle, CheckCircle2, XCircle, ArrowRightCircle } from 'lucide-react';
+import { TaskStatus } from "../types";
+import {
+  CircleDashed,
+  PlayCircle,
+  CheckCircle2,
+  XCircle,
+  ArrowRightCircle,
+} from "lucide-react";
 
 export const getStatusMeta = (status: TaskStatus) => {
   switch (status) {
-    case 'todo':
+    case "todo":
       return {
-        label: 'Chưa làm',
-        className: 'status-todo',
+        label: "Chưa làm",
+        className: "status-todo",
         icon: CircleDashed,
-        intent: 'neutral'
+        intent: "neutral",
       };
-    case 'in_progress':
+    case "in_progress":
       return {
-        label: 'Đang làm',
-        className: 'status-in-progress',
+        label: "Đang làm",
+        className: "status-in-progress",
         icon: PlayCircle,
-        intent: 'primary'
+        intent: "primary",
       };
-    case 'done':
+    case "done":
       return {
-        label: 'Hoàn thành',
-        className: 'status-done',
+        label: "Hoàn thành",
+        className: "status-done",
         icon: CheckCircle2,
-        intent: 'success'
+        intent: "success",
       };
-    case 'skipped':
+    case "skipped":
       return {
-        label: 'Bỏ qua',
-        className: 'status-skipped',
+        label: "Bỏ qua",
+        className: "status-skipped",
         icon: XCircle,
-        intent: 'muted'
+        intent: "muted",
       };
-    case 'moved':
+    case "moved":
       return {
-        label: 'Đã dời',
-        className: 'status-moved',
+        label: "Đã dời",
+        className: "status-moved",
         icon: ArrowRightCircle,
-        intent: 'warning'
+        intent: "warning",
       };
     default:
       return {
-        label: 'Chưa làm',
-        className: 'status-todo',
+        label: "Chưa làm",
+        className: "status-todo",
         icon: CircleDashed,
-        intent: 'neutral'
+        intent: "neutral",
       };
   }
 };

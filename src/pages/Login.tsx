@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
+import { Navigate } from "react-router-dom";
 
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const { session } = useAuth();
 
@@ -18,7 +18,7 @@ export const Login: React.FC = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       if (isSignUp) {
@@ -27,7 +27,7 @@ export const Login: React.FC = () => {
           password,
         });
         if (error) throw error;
-        alert('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
+        alert("Đăng ký thành công! Bạn có thể đăng nhập ngay.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -36,7 +36,7 @@ export const Login: React.FC = () => {
         if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message || 'Có lỗi xảy ra');
+      setError(err.message || "Có lỗi xảy ra");
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export const Login: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h2>{isSignUp ? 'Đăng Ký' : 'Đăng Nhập'}</h2>
+        <h2>{isSignUp ? "Đăng Ký" : "Đăng Nhập"}</h2>
         <p className="login-subtitle">Cloud-Synced Study Planner</p>
 
         {error && <div className="error-message">{error}</div>}
@@ -73,14 +73,22 @@ export const Login: React.FC = () => {
           </label>
 
           <button type="submit" disabled={loading} className="primary-btn">
-            {loading ? 'Đang xử lý...' : isSignUp ? 'Tạo tài khoản' : 'Đăng nhập'}
+            {loading
+              ? "Đang xử lý..."
+              : isSignUp
+                ? "Tạo tài khoản"
+                : "Đăng nhập"}
           </button>
         </form>
 
         <p className="switch-auth">
-          {isSignUp ? 'Đã có tài khoản? ' : 'Chưa có tài khoản? '}
-          <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-btn">
-            {isSignUp ? 'Đăng nhập' : 'Đăng ký ngay'}
+          {isSignUp ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-btn"
+          >
+            {isSignUp ? "Đăng nhập" : "Đăng ký ngay"}
           </button>
         </p>
       </div>

@@ -1,8 +1,8 @@
-import React from 'react';
-import { Task } from '../../types';
-import { TaskCard } from './TaskCard';
-import { CompactTaskRow } from './CompactTaskRow';
-import { TimelineTaskItem } from './TimelineTaskItem';
+import React from "react";
+import { Task } from "../../types";
+import { TaskCard } from "./TaskCard";
+import { CompactTaskRow } from "./CompactTaskRow";
+import { TimelineTaskItem } from "./TimelineTaskItem";
 
 export interface BaseTaskDisplayProps {
   task: Task;
@@ -16,17 +16,17 @@ export interface BaseTaskDisplayProps {
 }
 
 export interface TaskDisplayProps extends BaseTaskDisplayProps {
-  variant: 'card' | 'compact' | 'timeline';
+  variant: "card" | "compact" | "timeline";
 }
 
 export const TaskDisplay: React.FC<TaskDisplayProps> = (props) => {
   const { variant, ...rest } = props;
-  
-  if (variant === 'compact') {
+
+  if (variant === "compact") {
     return <CompactTaskRow {...rest} />;
   }
-  
-  if (variant === 'timeline') {
+
+  if (variant === "timeline") {
     return <TimelineTaskItem {...rest} />;
   }
 

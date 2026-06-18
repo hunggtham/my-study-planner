@@ -1,44 +1,50 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
+import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [shareSlug, setShareSlug] = useState('');
+  const [shareSlug, setShareSlug] = useState("");
   const [hasShare, setHasShare] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [dbCheckResult, setDbCheckResult] = useState<any>(null);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [autoLogin, setAutoLogin] = useState(() => {
-    return localStorage.getItem('study-planner-auto-login') !== 'false';
+    return localStorage.getItem("study-planner-auto-login") !== "false";
   });
 
   const toggleAutoLogin = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setAutoLogin(checked);
-    localStorage.setItem('study-planner-auto-login', checked ? 'true' : 'false');
+    localStorage.setItem(
+      "study-planner-auto-login",
+      checked ? "true" : "false",
+    );
   };
 
   const checkDb = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { count, error: countErr } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+      const { count, error: countErr } = await supabase
+        .from("tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
       if (countErr) throw countErr;
 
       const { data: topTasks, error: taskErr } = await supabase
-        .from('tasks')
-        .select('title, date, status, start_time')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
+        .from("tasks")
+        .select("title, date, status, start_time")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false })
         .limit(5);
       if (taskErr) throw taskErr;
 
       setDbCheckResult({ total: count, tasks: topTasks });
     } catch (err: any) {
-      alert('Lỗi khi kiểm tra DB: ' + err.message);
+      alert("Lỗi khi kiểm tra DB: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -47,7 +53,11 @@ export const Settings: React.FC = () => {
   useEffect(() => {
     const fetchShare = async () => {
       if (!user) return;
-      const { data } = await supabase.from('public_shares').select('slug, is_active').eq('user_id', user.id).single();
+      const { data } = await supabase
+        .from("public_shares")
+        .select("slug, is_active")
+        .eq("user_id", user.id)
+        .single();
       if (data) {
         setShareSlug(data.slug);
         setHasShare(true);
@@ -59,27 +69,32 @@ export const Settings: React.FC = () => {
 
   const importLocalData = async () => {
     if (!user) return;
-    const ok = window.confirm('Quá trình này sẽ lấy dữ liệu từ bản demo cũ (localStorage) và đẩy lên mây. Bạn chắc chắn chứ?');
+    const ok = window.confirm(
+      "Quá trình này sẽ lấy dữ liệu từ bản demo cũ (localStorage) và đẩy lên mây. Bạn chắc chắn chứ?",
+    );
     if (!ok) return;
 
     setLoading(true);
     try {
-      const raw = localStorage.getItem('study-planner-demo-v1');
+      const raw = localStorage.getItem("study-planner-demo-v1");
       if (!raw) {
-        alert('Không tìm thấy dữ liệu cũ trong localStorage.');
+        alert("Không tìm thấy dữ liệu cũ trong localStorage.");
         setLoading(false);
         return;
       }
 
       const data = JSON.parse(raw);
       if (!data.tasks || !Array.isArray(data.tasks)) {
-        alert('Dữ liệu không hợp lệ.');
+        alert("Dữ liệu không hợp lệ.");
         setLoading(false);
         return;
       }
 
-      const { data: existingTasks } = await supabase.from('tasks').select('date, start_time, title').eq('user_id', user.id);
-      
+      const { data: existingTasks } = await supabase
+        .from("tasks")
+        .select("date, start_time, title")
+        .eq("user_id", user.id);
+
       let skippedCount = 0;
       let invalidCount = 0;
 
@@ -89,33 +104,51 @@ export const Settings: React.FC = () => {
             invalidCount++;
             return false;
           }
-          const timeText = t.time || '';
-          const [startTime = ''] = timeText.split(' - ');
+          const timeText = t.time || "";
+          const [startTime = ""] = timeText.split(" - ");
 
           // duplicate prevention based on date + start_time + title
-          const isDup = existingTasks?.some(et => et.date === t.date && et.start_time === startTime && et.title === t.title);
+          const isDup = existingTasks?.some(
+            (et) =>
+              et.date === t.date &&
+              et.start_time === startTime &&
+              et.title === t.title,
+          );
           if (isDup) skippedCount++;
           return !isDup;
         })
         .map((t: any) => {
           let mappedStatus = t.status;
-          if (!['todo', 'in_progress', 'done', 'skipped', 'moved'].includes(mappedStatus)) {
-            mappedStatus = 'todo';
-            if (t.status === 'doing') mappedStatus = 'in_progress';
-          }
-          
-          let mappedPriority = 'medium';
-          if (t.priority === 'Cao') mappedPriority = 'high';
-          else if (t.priority === 'Thấp') mappedPriority = 'low';
-
-          let mappedType = t.type || 'main';
-          if (!['main', 'secondary', 'exercise', 'review', 'class', 'optional'].includes(mappedType)) {
-            mappedType = 'main';
-            if (t.type === 'health') mappedType = 'exercise';
+          if (
+            !["todo", "in_progress", "done", "skipped", "moved"].includes(
+              mappedStatus,
+            )
+          ) {
+            mappedStatus = "todo";
+            if (t.status === "doing") mappedStatus = "in_progress";
           }
 
-          const timeText = t.time || '';
-          const [startTime = '', endTime = ''] = timeText.split(' - ');
+          let mappedPriority = "medium";
+          if (t.priority === "Cao") mappedPriority = "high";
+          else if (t.priority === "Thấp") mappedPriority = "low";
+
+          let mappedType = t.type || "main";
+          if (
+            ![
+              "main",
+              "secondary",
+              "exercise",
+              "review",
+              "class",
+              "optional",
+            ].includes(mappedType)
+          ) {
+            mappedType = "main";
+            if (t.type === "health") mappedType = "exercise";
+          }
+
+          const timeText = t.time || "";
+          const [startTime = "", endTime = ""] = timeText.split(" - ");
 
           return {
             user_id: user.id,
@@ -124,36 +157,43 @@ export const Settings: React.FC = () => {
             end_time: endTime,
             category: t.category,
             title: t.title,
-            description: t.detail || '',
+            description: t.detail || "",
             task_type: mappedType,
             status: mappedStatus,
             priority: mappedPriority,
             score_weight: t.score || 1,
-            note: t.note || '',
+            note: t.note || "",
           };
-      });
+        });
 
       if (tasksToInsert.length === 0) {
-        alert(`Không có dữ liệu mới nào để đồng bộ. Đã bỏ qua ${skippedCount} task trùng lặp, ${invalidCount} task không hợp lệ.`);
+        alert(
+          `Không có dữ liệu mới nào để đồng bộ. Đã bỏ qua ${skippedCount} task trùng lặp, ${invalidCount} task không hợp lệ.`,
+        );
         setLoading(false);
         return;
       }
 
-      const { error } = await supabase.from('tasks').insert(tasksToInsert);
+      const { error } = await supabase.from("tasks").insert(tasksToInsert);
       if (error) throw error;
-      
-      alert(`Đã đồng bộ ${tasksToInsert.length} task lên Supabase. Đã bỏ qua ${skippedCount} task trùng, ${invalidCount} task lỗi. Vào Lịch tháng để xem toàn bộ task.`);
 
-      const { count: finalCount, error: countError } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+      alert(
+        `Đã đồng bộ ${tasksToInsert.length} task lên Supabase. Đã bỏ qua ${skippedCount} task trùng, ${invalidCount} task lỗi. Vào Lịch tháng để xem toàn bộ task.`,
+      );
+
+      const { count: finalCount, error: countError } = await supabase
+        .from("tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
       if (!countError) {
         alert(`Tài khoản hiện có ${finalCount} task trong database.`);
         if (finalCount === 0) {
-          alert('Insert may have failed due to RLS or user mismatch.');
+          alert("Insert may have failed due to RLS or user mismatch.");
         }
       }
     } catch (err: any) {
       console.error(err);
-      alert('Có lỗi xảy ra: ' + err.message);
+      alert("Có lỗi xảy ra: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -163,35 +203,42 @@ export const Settings: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('tasks').select('*').eq('user_id', user.id).order('date', { ascending: false });
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
       if (error) throw error;
-      
+
       if (!data || data.length === 0) {
-        alert('Không có dữ liệu để xuất.');
+        alert("Không có dữ liệu để xuất.");
         return;
       }
 
-      const { utils, writeFile } = await import('xlsx');
-      
-      const exportData = data.map(t => ({
-        'Ngày': t.date,
-        'Bắt đầu': t.start_time,
-        'Kết thúc': t.end_time,
-        'Tiêu đề': t.title,
-        'Danh mục': t.category,
-        'Trạng thái': t.status,
-        'Độ ưu tiên': t.priority,
-        'Loại': t.task_type,
-        'Chi tiết': t.description,
-        'Ghi chú': t.note
+      const { utils, writeFile } = await import("xlsx");
+
+      const exportData = data.map((t) => ({
+        Ngày: t.date,
+        "Bắt đầu": t.start_time,
+        "Kết thúc": t.end_time,
+        "Tiêu đề": t.title,
+        "Danh mục": t.category,
+        "Trạng thái": t.status,
+        "Độ ưu tiên": t.priority,
+        Loại: t.task_type,
+        "Chi tiết": t.description,
+        "Ghi chú": t.note,
       }));
 
       const ws = utils.json_to_sheet(exportData);
       const wb = utils.book_new();
-      utils.book_append_sheet(wb, ws, 'Tasks');
-      writeFile(wb, `study_planner_tasks_${new Date().toISOString().split('T')[0]}.xlsx`);
+      utils.book_append_sheet(wb, ws, "Tasks");
+      writeFile(
+        wb,
+        `study_planner_tasks_${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
     } catch (err: any) {
-      alert('Lỗi xuất Excel: ' + err.message);
+      alert("Lỗi xuất Excel: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -202,50 +249,50 @@ export const Settings: React.FC = () => {
     if (!file) return;
 
     try {
-      const { read, utils } = await import('xlsx');
+      const { read, utils } = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const wb = read(buffer);
       const ws = wb.Sheets[wb.SheetNames[0]];
       const data = utils.sheet_to_json(ws);
 
       if (!data || data.length === 0) {
-        alert('File không có dữ liệu');
+        alert("File không có dữ liệu");
         return;
       }
 
       setImportPreview(data);
     } catch (err: any) {
-      alert('Lỗi đọc file: ' + err.message);
+      alert("Lỗi đọc file: " + err.message);
     }
-    
-    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const confirmImport = async () => {
     if (!user || !importPreview) return;
     setLoading(true);
     try {
-      const tasksToInsert = importPreview.map(row => ({
+      const tasksToInsert = importPreview.map((row) => ({
         user_id: user.id,
-        date: row['Ngày'] || new Date().toISOString().split('T')[0],
-        start_time: row['Bắt đầu'] || '',
-        end_time: row['Kết thúc'] || '',
-        title: row['Tiêu đề'] || 'Không có tiêu đề',
-        category: row['Danh mục'] || 'Chung',
-        status: row['Trạng thái'] || 'todo',
-        priority: row['Độ ưu tiên'] || 'medium',
-        task_type: row['Loại'] || 'main',
-        description: row['Chi tiết'] || '',
-        note: row['Ghi chú'] || ''
+        date: row["Ngày"] || new Date().toISOString().split("T")[0],
+        start_time: row["Bắt đầu"] || "",
+        end_time: row["Kết thúc"] || "",
+        title: row["Tiêu đề"] || "Không có tiêu đề",
+        category: row["Danh mục"] || "Chung",
+        status: row["Trạng thái"] || "todo",
+        priority: row["Độ ưu tiên"] || "medium",
+        task_type: row["Loại"] || "main",
+        description: row["Chi tiết"] || "",
+        note: row["Ghi chú"] || "",
       }));
 
-      const { error } = await supabase.from('tasks').insert(tasksToInsert);
+      const { error } = await supabase.from("tasks").insert(tasksToInsert);
       if (error) throw error;
-      
+
       alert(`Nhập thành công ${tasksToInsert.length} task!`);
       setImportPreview(null);
     } catch (err: any) {
-      alert('Lỗi nhập dữ liệu: ' + err.message);
+      alert("Lỗi nhập dữ liệu: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -256,15 +303,22 @@ export const Settings: React.FC = () => {
     setLoading(true);
     try {
       const slug = Math.random().toString(36).substring(2, 10);
-      const { error } = await supabase.from('public_shares').insert([
-        { user_id: user.id, slug, is_active: true }
-      ]);
+      const { error } = await supabase
+        .from("public_shares")
+        .insert([{ user_id: user.id, slug, is_active: true }]);
       if (error) {
-        if (error.code === '23505') {
+        if (error.code === "23505") {
           // Already exists, just make active if it wasn't
-          const { data } = await supabase.from('public_shares').select('slug').eq('user_id', user.id).single();
+          const { data } = await supabase
+            .from("public_shares")
+            .select("slug")
+            .eq("user_id", user.id)
+            .single();
           if (data) {
-            await supabase.from('public_shares').update({ is_active: true }).eq('user_id', user.id);
+            await supabase
+              .from("public_shares")
+              .update({ is_active: true })
+              .eq("user_id", user.id);
             setShareSlug(data.slug);
             setHasShare(true);
             setIsActive(true);
@@ -279,7 +333,7 @@ export const Settings: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      alert('Lỗi: ' + err.message);
+      alert("Lỗi: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -288,17 +342,28 @@ export const Settings: React.FC = () => {
   const toggleShare = async () => {
     if (!user) return;
     setLoading(true);
-    await supabase.from('public_shares').update({ is_active: !isActive }).eq('user_id', user.id);
+    await supabase
+      .from("public_shares")
+      .update({ is_active: !isActive })
+      .eq("user_id", user.id);
     setIsActive(!isActive);
     setLoading(false);
   };
 
   const regenerateShare = async () => {
     if (!user) return;
-    if (!window.confirm('Tạo lại link sẽ làm link cũ không thể truy cập được nữa. Bạn chắc chứ?')) return;
+    if (
+      !window.confirm(
+        "Tạo lại link sẽ làm link cũ không thể truy cập được nữa. Bạn chắc chứ?",
+      )
+    )
+      return;
     setLoading(true);
     const newSlug = Math.random().toString(36).substring(2, 10);
-    await supabase.from('public_shares').update({ slug: newSlug, is_active: true }).eq('user_id', user.id);
+    await supabase
+      .from("public_shares")
+      .update({ slug: newSlug, is_active: true })
+      .eq("user_id", user.id);
     setShareSlug(newSlug);
     setIsActive(true);
     setLoading(false);
@@ -312,38 +377,71 @@ export const Settings: React.FC = () => {
 
       <div className="card settings-section">
         <h3>Tài khoản</h3>
-        <p>Đăng nhập bằng: <strong>{user?.email}</strong></p>
-        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <input 
-            type="checkbox" 
-            id="autoLogin" 
-            checked={autoLogin} 
-            onChange={toggleAutoLogin} 
-            style={{ width: 'auto', cursor: 'pointer' }}
+        <p>
+          Đăng nhập bằng: <strong>{user?.email}</strong>
+        </p>
+        <div
+          style={{
+            marginTop: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+        >
+          <input
+            type="checkbox"
+            id="autoLogin"
+            checked={autoLogin}
+            onChange={toggleAutoLogin}
+            style={{ width: "auto", cursor: "pointer" }}
           />
-          <label htmlFor="autoLogin" style={{ cursor: 'pointer' }}>Ghi nhớ đăng nhập (30 ngày)</label>
+          <label htmlFor="autoLogin" style={{ cursor: "pointer" }}>
+            Ghi nhớ đăng nhập (30 ngày)
+          </label>
         </div>
-        <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+        <p
+          className="text-muted"
+          style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}
+        >
           Nếu tắt, phiên đăng nhập sẽ tự động kết thúc khi bạn đóng trình duyệt.
         </p>
-        <button className="danger-btn" style={{ marginTop: '1rem', width: 'auto' }} onClick={() => supabase.auth.signOut()}>Đăng xuất</button>
+        <button
+          className="danger-btn"
+          style={{ marginTop: "1rem", width: "auto" }}
+          onClick={() => supabase.auth.signOut()}
+        >
+          Đăng xuất
+        </button>
       </div>
 
       <div className="card settings-section">
         <h3>Kiểm tra dữ liệu cloud</h3>
-        <p className="text-muted">Kiểm tra xem dữ liệu đã được lưu thành công trên database chưa.</p>
+        <p className="text-muted">
+          Kiểm tra xem dữ liệu đã được lưu thành công trên database chưa.
+        </p>
         <button className="secondary-btn" onClick={checkDb} disabled={loading}>
           Kiểm tra số task trong DB
         </button>
         {dbCheckResult && (
-          <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--surface-color)', borderRadius: '8px' }}>
-            <p><strong>Tổng số task:</strong> {dbCheckResult.total}</p>
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "1rem",
+              background: "var(--surface-color)",
+              borderRadius: "8px",
+            }}
+          >
+            <p>
+              <strong>Tổng số task:</strong> {dbCheckResult.total}
+            </p>
             {dbCheckResult.tasks?.length > 0 && (
-              <div style={{ marginTop: '0.5rem' }}>
+              <div style={{ marginTop: "0.5rem" }}>
                 <strong>5 task gần nhất:</strong>
-                <ul style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
+                <ul style={{ marginLeft: "1.5rem", marginTop: "0.5rem" }}>
                   {dbCheckResult.tasks.map((t: any, i: number) => (
-                    <li key={i}>{t.title} - {t.date} {t.start_time} ({t.status})</li>
+                    <li key={i}>
+                      {t.title} - {t.date} {t.start_time} ({t.status})
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -354,20 +452,40 @@ export const Settings: React.FC = () => {
 
       <div className="card settings-section">
         <h3>Nhập / Xuất Excel</h3>
-        <p className="text-muted">Lưu trữ dữ liệu học tập ra file Excel hoặc import từ file Excel vào hệ thống.</p>
-        <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-          <button className="primary-btn" style={{ width: 'auto', margin: 0 }} onClick={exportToExcel} disabled={loading}>
-            {loading ? 'Đang tải...' : 'Xuất dữ liệu (.xlsx)'}
+        <p className="text-muted">
+          Lưu trữ dữ liệu học tập ra file Excel hoặc import từ file Excel vào hệ
+          thống.
+        </p>
+        <div
+          style={{
+            marginTop: "1rem",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <button
+            className="primary-btn"
+            style={{ width: "auto", margin: 0 }}
+            onClick={exportToExcel}
+            disabled={loading}
+          >
+            {loading ? "Đang tải..." : "Xuất dữ liệu (.xlsx)"}
           </button>
-          
-          <input 
-            type="file" 
-            accept=".xlsx" 
-            ref={fileInputRef} 
-            style={{ display: 'none' }} 
+
+          <input
+            type="file"
+            accept=".xlsx"
+            ref={fileInputRef}
+            style={{ display: "none" }}
             onChange={handleFileChange}
           />
-          <button className="secondary-btn" style={{ width: 'auto', margin: 0 }} onClick={() => fileInputRef.current?.click()} disabled={loading}>
+          <button
+            className="secondary-btn"
+            style={{ width: "auto", margin: 0 }}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+          >
             Nhập dữ liệu (.xlsx)
           </button>
         </div>
@@ -375,48 +493,99 @@ export const Settings: React.FC = () => {
 
       <div className="card settings-section">
         <h3>Đồng bộ dữ liệu cũ</h3>
-        <p className="text-muted">Lấy dữ liệu từ phiên bản dùng thử (chỉ lưu trên máy này) và đẩy lên tài khoản của bạn.</p>
-        <button className="primary-btn" onClick={importLocalData} disabled={loading}>
-          {loading ? 'Đang xử lý...' : 'Đồng bộ từ LocalStorage'}
+        <p className="text-muted">
+          Lấy dữ liệu từ phiên bản dùng thử (chỉ lưu trên máy này) và đẩy lên
+          tài khoản của bạn.
+        </p>
+        <button
+          className="primary-btn"
+          onClick={importLocalData}
+          disabled={loading}
+        >
+          {loading ? "Đang xử lý..." : "Đồng bộ từ LocalStorage"}
         </button>
       </div>
 
       <div className="card settings-section">
         <h3>Quản lý dữ liệu cục bộ</h3>
-        <p className="text-muted">Tính năng này giúp giải phóng dung lượng hoặc xóa các cài đặt cũ (như chế độ xem, form task tạm thời). Dữ liệu trên mây sẽ không bị ảnh hưởng.</p>
-        <button className="danger-btn" style={{ width: 'auto', marginTop: '1rem' }} onClick={() => {
-          if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm (LocalStorage)? Phiên đăng nhập hiện tại có thể bị thoát và các thiết lập hiển thị sẽ bị reset.')) {
-            localStorage.clear();
-            window.location.reload();
-          }
-        }}>
+        <p className="text-muted">
+          Tính năng này giúp giải phóng dung lượng hoặc xóa các cài đặt cũ (như
+          chế độ xem, form task tạm thời). Dữ liệu trên mây sẽ không bị ảnh
+          hưởng.
+        </p>
+        <button
+          className="danger-btn"
+          style={{ width: "auto", marginTop: "1rem" }}
+          onClick={() => {
+            if (
+              window.confirm(
+                "Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm (LocalStorage)? Phiên đăng nhập hiện tại có thể bị thoát và các thiết lập hiển thị sẽ bị reset.",
+              )
+            ) {
+              localStorage.clear();
+              window.location.reload();
+            }
+          }}
+        >
           Xóa bộ nhớ đệm (LocalStorage)
         </button>
       </div>
 
       <div className="card settings-section">
         <h3>Chia sẻ (Public Link)</h3>
-        <p className="text-muted">Tạo link chia sẻ tiến độ học tập (chỉ đọc) cho bạn bè.</p>
-        
+        <p className="text-muted">
+          Tạo link chia sẻ tiến độ học tập (chỉ đọc) cho bạn bè.
+        </p>
+
         {hasShare ? (
           <div>
             <div className="share-link-box">
-              <input type="text" readOnly value={isActive ? `${window.location.origin}/${shareSlug}/shared` : 'Đã vô hiệu hóa'} />
-              <button className="secondary-btn" disabled={!isActive} onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${shareSlug}/shared`)}>
+              <input
+                type="text"
+                readOnly
+                value={
+                  isActive
+                    ? `${window.location.origin}/${shareSlug}/shared`
+                    : "Đã vô hiệu hóa"
+                }
+              />
+              <button
+                className="secondary-btn"
+                disabled={!isActive}
+                onClick={() =>
+                  navigator.clipboard.writeText(
+                    `${window.location.origin}/${shareSlug}/shared`,
+                  )
+                }
+              >
                 Copy Link
               </button>
             </div>
-            <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
-              <button className={isActive ? "danger-btn" : "primary-btn"} style={{ width: 'auto' }} onClick={toggleShare} disabled={loading}>
-                {isActive ? 'Vô hiệu hóa link' : 'Mở lại link'}
+            <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
+              <button
+                className={isActive ? "danger-btn" : "primary-btn"}
+                style={{ width: "auto" }}
+                onClick={toggleShare}
+                disabled={loading}
+              >
+                {isActive ? "Vô hiệu hóa link" : "Mở lại link"}
               </button>
-              <button className="secondary-btn" style={{ width: 'auto' }} onClick={regenerateShare} disabled={loading}>
+              <button
+                className="secondary-btn"
+                style={{ width: "auto" }}
+                onClick={regenerateShare}
+                disabled={loading}
+              >
                 Tạo link mới
               </button>
             </div>
           </div>
         ) : (
-          <button className="primary-btn" onClick={generateShareLink} disabled={loading}>
+          <button
+            className="primary-btn"
+            onClick={generateShareLink}
+            disabled={loading}
+          >
             Tạo link chia sẻ
           </button>
         )}
@@ -424,38 +593,104 @@ export const Settings: React.FC = () => {
 
       {importPreview && (
         <div className="task-form-overlay" style={{ zIndex: 1000 }}>
-          <div className="task-form-container card" style={{ maxWidth: '600px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div
+            className="task-form-container card"
+            style={{
+              maxWidth: "600px",
+              width: "100%",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1rem",
+              }}
+            >
               <h3 style={{ margin: 0 }}>Xác nhận Nhập Dữ Liệu</h3>
-              <button className="secondary-btn icon-btn" onClick={() => setImportPreview(null)} style={{ width: 'auto' }}>Đóng</button>
+              <button
+                className="secondary-btn icon-btn"
+                onClick={() => setImportPreview(null)}
+                style={{ width: "auto" }}
+              >
+                Đóng
+              </button>
             </div>
-            
-            <p style={{ marginBottom: '1rem' }}>Tìm thấy <strong>{importPreview.length}</strong> dòng hợp lệ. Dưới đây là 3 dòng đầu tiên:</p>
-            
-            <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg-dark)', borderRadius: '4px', border: '1px solid var(--border-color)', padding: '0.5rem' }}>
-              <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
+
+            <p style={{ marginBottom: "1rem" }}>
+              Tìm thấy <strong>{importPreview.length}</strong> dòng hợp lệ. Dưới
+              đây là 3 dòng đầu tiên:
+            </p>
+
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                background: "var(--bg-dark)",
+                borderRadius: "4px",
+                border: "1px solid var(--border-color)",
+                padding: "0.5rem",
+              }}
+            >
+              <table
+                style={{
+                  width: "100%",
+                  fontSize: "0.875rem",
+                  borderCollapse: "collapse",
+                }}
+              >
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.5rem' }}>Ngày</th>
-                    <th style={{ padding: '0.5rem' }}>Tiêu đề</th>
-                    <th style={{ padding: '0.5rem' }}>Trạng thái</th>
+                  <tr
+                    style={{
+                      borderBottom: "1px solid var(--border-color)",
+                      textAlign: "left",
+                    }}
+                  >
+                    <th style={{ padding: "0.5rem" }}>Ngày</th>
+                    <th style={{ padding: "0.5rem" }}>Tiêu đề</th>
+                    <th style={{ padding: "0.5rem" }}>Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
                   {importPreview.slice(0, 3).map((row, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '0.5rem' }}>{row['Ngày'] || '-'}</td>
-                      <td style={{ padding: '0.5rem' }}>{row['Tiêu đề'] || '-'}</td>
-                      <td style={{ padding: '0.5rem' }}>{row['Trạng thái'] || '-'}</td>
+                    <tr
+                      key={i}
+                      style={{ borderBottom: "1px solid var(--border-color)" }}
+                    >
+                      <td style={{ padding: "0.5rem" }}>
+                        {row["Ngày"] || "-"}
+                      </td>
+                      <td style={{ padding: "0.5rem" }}>
+                        {row["Tiêu đề"] || "-"}
+                      </td>
+                      <td style={{ padding: "0.5rem" }}>
+                        {row["Trạng thái"] || "-"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button className="secondary-btn" onClick={() => setImportPreview(null)} disabled={loading}>Hủy</button>
-              <button className="primary-btn" onClick={confirmImport} disabled={loading}>{loading ? 'Đang xử lý...' : 'Xác nhận Nhập'}</button>
+            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+              <button
+                className="secondary-btn"
+                onClick={() => setImportPreview(null)}
+                disabled={loading}
+              >
+                Hủy
+              </button>
+              <button
+                className="primary-btn"
+                onClick={confirmImport}
+                disabled={loading}
+              >
+                {loading ? "Đang xử lý..." : "Xác nhận Nhập"}
+              </button>
             </div>
           </div>
         </div>

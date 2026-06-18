@@ -1,6 +1,12 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'skipped' | 'moved';
-export type TaskPriority = 'high' | 'medium' | 'low';
-export type TaskType = 'main' | 'secondary' | 'exercise' | 'review' | 'class' | 'optional';
+export type TaskStatus = "todo" | "in_progress" | "done" | "skipped" | "moved";
+export type TaskPriority = "high" | "medium" | "low";
+export type TaskType =
+  | "main"
+  | "secondary"
+  | "exercise"
+  | "review"
+  | "class"
+  | "optional";
 
 export interface Task {
   id: string;
@@ -25,7 +31,7 @@ export interface Task {
 export interface Goal {
   id: string;
   user_id?: string;
-  period_type: 'week' | 'month';
+  period_type: "week" | "month";
   period_start_date: string;
   title: string;
   category: string;

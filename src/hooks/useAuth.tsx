@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -16,7 +16,9 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,9 +26,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const isAutoLogin = localStorage.getItem('study-planner-auto-login') !== 'false';
-      const sessionActive = sessionStorage.getItem('study-planner-session-active');
-      
+      const isAutoLogin =
+        localStorage.getItem("study-planner-auto-login") !== "false";
+      const sessionActive = sessionStorage.getItem(
+        "study-planner-session-active",
+      );
+
       if (session && !isAutoLogin && !sessionActive) {
         supabase.auth.signOut().then(() => {
           setSession(null);
@@ -35,15 +40,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         return;
       }
-      
-      sessionStorage.setItem('study-planner-session-active', 'true');
+
+      sessionStorage.setItem("study-planner-session-active", "true");
       setSession(session);
       setUser(session?.user || null);
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user || null);
       setLoading(false);
