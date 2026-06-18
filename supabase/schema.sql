@@ -91,7 +91,9 @@ create policy "Users can delete their own share settings" on public_shares for d
 -- 4. PUBLIC SHARE RPC
 -- ------------------------------------------
 -- Public Dashboard RPC Function for secure read-only access
-create or replace function get_public_dashboard_by_slug(p_slug text)
+drop function if exists get_public_dashboard_by_slug(text);
+
+create function get_public_dashboard_by_slug(p_slug text)
 returns table (
   date date,
   category varchar,
@@ -102,6 +104,7 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
   target_user_id uuid;

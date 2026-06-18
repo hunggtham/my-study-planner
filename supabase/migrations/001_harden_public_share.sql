@@ -8,7 +8,9 @@ drop policy if exists "Public can view tasks if shared" on tasks;
 drop policy if exists "Public can view goals if shared" on goals;
 
 -- 2. Update the RPC function to stop returning internal IDs and private fields
-create or replace function get_public_dashboard_by_slug(p_slug text)
+drop function if exists get_public_dashboard_by_slug(text);
+
+create function get_public_dashboard_by_slug(p_slug text)
 returns table (
   date date,
   category varchar,
@@ -19,6 +21,7 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
   target_user_id uuid;
