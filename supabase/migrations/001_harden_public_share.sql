@@ -3,9 +3,19 @@
 -- Goal: Remove unsafe direct public SELECT policies and update the secure RPC.
 -- ==========================================
 
+set search_path = public;
+
 -- 1. Remove direct public SELECT policies from tasks and goals
-drop policy if exists "Public can view tasks if shared" on tasks;
-drop policy if exists "Public can view goals if shared" on goals;
+do $$
+begin
+  if to_regclass('public.tasks') is not null then
+    drop policy if exists "Public can view tasks if shared" on tasks;
+  end if;
+
+  if to_regclass('public.goals') is not null then
+    drop policy if exists "Public can view goals if shared" on goals;
+  end if;
+end $$;
 
 -- 2. Update the RPC function to stop returning internal IDs and private fields
 drop function if exists get_public_dashboard_by_slug(text);
