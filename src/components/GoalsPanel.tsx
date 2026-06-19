@@ -4,6 +4,8 @@ import { useAuth } from "../hooks/useAuth";
 import { Goal } from "../types";
 import { Trash2, GitMerge } from "lucide-react";
 import { GoalBreakdownForm } from "./GoalBreakdownForm";
+import { Button } from "./ui/Button";
+import { Card, CardContent } from "./ui/Card";
 
 interface GoalsPanelProps {
   periodType: "week" | "month";
@@ -123,27 +125,31 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "1rem",
+            marginBottom: "1.5rem",
           }}
         >
-          <h3 style={{ margin: 0 }}>
+          <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>
             Mục tiêu {periodType === "week" ? "Tuần" : "Tháng"} (
             {periodStartDate})
           </h3>
           {onClose && (
-            <button
-              className="secondary-btn icon-btn"
-              onClick={onClose}
-              style={{ width: "auto" }}
-            >
+            <Button variant="ghost" size="sm" onClick={onClose}>
               Đóng
-            </button>
+            </Button>
           )}
         </div>
       )}
 
       {loading ? (
-        <div className="loading-state">Đang tải...</div>
+        <div
+          style={{
+            padding: "2rem",
+            textAlign: "center",
+            color: "var(--text-secondary)",
+          }}
+        >
+          Đang tải...
+        </div>
       ) : (
         <>
           {goals.length > 0 && (
@@ -181,35 +187,44 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
           )}
 
           <div
-            className="goals-list"
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "1rem",
+              gap: "0.75rem",
               marginBottom: "1.5rem",
             }}
           >
             {goals.length === 0 ? (
-              <p className="text-muted">Chưa có mục tiêu nào.</p>
+              <Card>
+                <CardContent
+                  style={{
+                    padding: "2rem",
+                    textAlign: "center",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Chưa có mục tiêu nào.
+                </CardContent>
+              </Card>
             ) : (
               goals.map((goal) => (
                 <div
                   key={goal.id}
-                  className={`goal-item ${goal.is_done ? "is-done" : ""}`}
                   style={{
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.5rem",
                     opacity: goal.is_done ? 0.6 : 1,
                     padding: "1rem",
-                    background: "var(--bg-panel)",
-                    borderRadius: "8px",
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "var(--radius-md)",
                   }}
                 >
                   <div
                     style={{
                       display: "flex",
-                      gap: "0.75rem",
+                      gap: "1rem",
                       alignItems: "center",
                     }}
                   >
@@ -222,6 +237,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                         height: "1.25rem",
                         cursor: "pointer",
                         margin: 0,
+                        flexShrink: 0,
                       }}
                     />
                     <div
@@ -245,7 +261,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                       <span
                         style={{
                           fontSize: "0.75rem",
-                          color: "var(--text-muted)",
+                          color: "var(--text-secondary)",
                         }}
                       >
                         {goal.category}
@@ -254,27 +270,22 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
 
                     <div style={{ display: "flex", gap: "0.5rem" }}>
                       {!goal.is_done && (
-                        <button
-                          className="secondary-btn icon-btn"
+                        <Button
+                          variant="secondary"
+                          size="icon"
                           onClick={() => setBreakdownGoal(goal)}
                           title="Tách thành task nhỏ"
-                          style={{
-                            padding: "0.4rem",
-                            border: "1px solid var(--primary)",
-                            color: "var(--primary)",
-                            background: "transparent",
-                          }}
                         >
-                          <GitMerge size={14} />
-                        </button>
+                          <GitMerge size={16} />
+                        </Button>
                       )}
-                      <button
-                        className="danger-btn icon-btn"
+                      <Button
+                        variant="danger"
+                        size="icon"
                         onClick={() => deleteGoal(goal.id)}
-                        style={{ padding: "0.4rem" }}
                       >
-                        <Trash2 size={14} />
-                      </button>
+                        <Trash2 size={16} />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -286,22 +297,18 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
 
       <form
         onSubmit={addGoal}
-        style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+        style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
       >
         <input
           type="text"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           placeholder="Thêm mục tiêu mới..."
-          style={{ flex: 1, minWidth: "200px" }}
+          style={{ flex: 1 }}
         />
-        <button
-          type="submit"
-          className="primary-btn"
-          style={{ width: "auto", margin: 0, padding: "0.5rem 1rem" }}
-        >
+        <Button variant="primary" type="submit">
           Thêm
-        </button>
+        </Button>
       </form>
 
       {breakdownGoal && (

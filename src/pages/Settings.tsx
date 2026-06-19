@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
+import { Button } from "../components/ui/Button";
+import { Card, CardContent } from "../components/ui/Card";
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -375,226 +377,243 @@ export const Settings: React.FC = () => {
         <h1>Cài đặt</h1>
       </header>
 
-      <div className="card settings-section">
-        <h3>Tài khoản</h3>
-        <p>
-          Đăng nhập bằng: <strong>{user?.email}</strong>
-        </p>
-        <div
-          style={{
-            marginTop: "1rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
-          <input
-            type="checkbox"
-            id="autoLogin"
-            checked={autoLogin}
-            onChange={toggleAutoLogin}
-            style={{ width: "auto", cursor: "pointer" }}
-          />
-          <label htmlFor="autoLogin" style={{ cursor: "pointer" }}>
-            Ghi nhớ đăng nhập (30 ngày)
-          </label>
-        </div>
-        <p
-          className="text-muted"
-          style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}
-        >
-          Nếu tắt, phiên đăng nhập sẽ tự động kết thúc khi bạn đóng trình duyệt.
-        </p>
-        <button
-          className="danger-btn"
-          style={{ marginTop: "1rem", width: "auto" }}
-          onClick={() => supabase.auth.signOut()}
-        >
-          Đăng xuất
-        </button>
-      </div>
-
-      <div className="card settings-section">
-        <h3>Kiểm tra dữ liệu cloud</h3>
-        <p className="text-muted">
-          Kiểm tra xem dữ liệu đã được lưu thành công trên database chưa.
-        </p>
-        <button className="secondary-btn" onClick={checkDb} disabled={loading}>
-          Kiểm tra số task trong DB
-        </button>
-        {dbCheckResult && (
+      <Card className="settings-section">
+        <CardContent style={{ paddingTop: "1.5rem" }}>
+          <h3>Tài khoản</h3>
+          <p>
+            Đăng nhập bằng: <strong>{user?.email}</strong>
+          </p>
           <div
             style={{
               marginTop: "1rem",
-              padding: "1rem",
-              background: "var(--surface-color)",
-              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
             }}
           >
-            <p>
-              <strong>Tổng số task:</strong> {dbCheckResult.total}
-            </p>
-            {dbCheckResult.tasks?.length > 0 && (
-              <div style={{ marginTop: "0.5rem" }}>
-                <strong>5 task gần nhất:</strong>
-                <ul style={{ marginLeft: "1.5rem", marginTop: "0.5rem" }}>
-                  {dbCheckResult.tasks.map((t: any, i: number) => (
-                    <li key={i}>
-                      {t.title} - {t.date} {t.start_time} ({t.status})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <input
+              type="checkbox"
+              id="autoLogin"
+              checked={autoLogin}
+              onChange={toggleAutoLogin}
+              style={{ width: "auto", cursor: "pointer" }}
+            />
+            <label htmlFor="autoLogin" style={{ cursor: "pointer" }}>
+              Ghi nhớ đăng nhập (30 ngày)
+            </label>
           </div>
-        )}
-      </div>
-
-      <div className="card settings-section">
-        <h3>Nhập / Xuất Excel</h3>
-        <p className="text-muted">
-          Lưu trữ dữ liệu học tập ra file Excel hoặc import từ file Excel vào hệ
-          thống.
-        </p>
-        <div
-          style={{
-            marginTop: "1rem",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "1rem",
-          }}
-        >
-          <button
-            className="primary-btn"
-            style={{ width: "auto", margin: 0 }}
-            onClick={exportToExcel}
-            disabled={loading}
+          <p
+            className="text-muted"
+            style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}
           >
-            {loading ? "Đang tải..." : "Xuất dữ liệu (.xlsx)"}
+            Nếu tắt, phiên đăng nhập sẽ tự động kết thúc khi bạn đóng trình
+            duyệt.
+          </p>
+          <button
+            className="danger-btn"
+            style={{ marginTop: "1rem", width: "auto" }}
+            onClick={() => supabase.auth.signOut()}
+          >
+            Đăng xuất
           </button>
+        </CardContent>
+      </Card>
 
-          <input
-            type="file"
-            accept=".xlsx"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-          />
+      <Card className="settings-section">
+        <CardContent style={{ paddingTop: "1.5rem" }}>
+          <h3>Kiểm tra dữ liệu cloud</h3>
+          <p className="text-muted">
+            Kiểm tra xem dữ liệu đã được lưu thành công trên database chưa.
+          </p>
           <button
             className="secondary-btn"
-            style={{ width: "auto", margin: 0 }}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={checkDb}
             disabled={loading}
           >
-            Nhập dữ liệu (.xlsx)
+            Kiểm tra số task trong DB
           </button>
-        </div>
-      </div>
-
-      <div className="card settings-section">
-        <h3>Đồng bộ dữ liệu cũ</h3>
-        <p className="text-muted">
-          Lấy dữ liệu từ phiên bản dùng thử (chỉ lưu trên máy này) và đẩy lên
-          tài khoản của bạn.
-        </p>
-        <button
-          className="primary-btn"
-          onClick={importLocalData}
-          disabled={loading}
-        >
-          {loading ? "Đang xử lý..." : "Đồng bộ từ LocalStorage"}
-        </button>
-      </div>
-
-      <div className="card settings-section">
-        <h3>Quản lý dữ liệu cục bộ</h3>
-        <p className="text-muted">
-          Tính năng này giúp giải phóng dung lượng hoặc xóa các cài đặt cũ (như
-          chế độ xem, form task tạm thời). Dữ liệu trên mây sẽ không bị ảnh
-          hưởng.
-        </p>
-        <button
-          className="danger-btn"
-          style={{ width: "auto", marginTop: "1rem" }}
-          onClick={() => {
-            if (
-              window.confirm(
-                "Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm (LocalStorage)? Phiên đăng nhập hiện tại có thể bị thoát và các thiết lập hiển thị sẽ bị reset.",
-              )
-            ) {
-              localStorage.clear();
-              window.location.reload();
-            }
-          }}
-        >
-          Xóa bộ nhớ đệm (LocalStorage)
-        </button>
-      </div>
-
-      <div className="card settings-section">
-        <h3>Chia sẻ (Public Link)</h3>
-        <p className="text-muted">
-          Tạo link chia sẻ tiến độ học tập (chỉ đọc) cho bạn bè.
-        </p>
-
-        {hasShare ? (
-          <div>
-            <div className="share-link-box">
-              <input
-                type="text"
-                readOnly
-                value={
-                  isActive
-                    ? `${window.location.origin}/${shareSlug}/shared`
-                    : "Đã vô hiệu hóa"
-                }
-              />
-              <button
-                className="secondary-btn"
-                disabled={!isActive}
-                onClick={() =>
-                  navigator.clipboard.writeText(
-                    `${window.location.origin}/${shareSlug}/shared`,
-                  )
-                }
-              >
-                Copy Link
-              </button>
+          {dbCheckResult && (
+            <div
+              style={{
+                marginTop: "1rem",
+                padding: "1rem",
+                background: "var(--surface-color)",
+                borderRadius: "8px",
+              }}
+            >
+              <p>
+                <strong>Tổng số task:</strong> {dbCheckResult.total}
+              </p>
+              {dbCheckResult.tasks?.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <strong>5 task gần nhất:</strong>
+                  <ul style={{ marginLeft: "1.5rem", marginTop: "0.5rem" }}>
+                    {dbCheckResult.tasks.map((t: any, i: number) => (
+                      <li key={i}>
+                        {t.title} - {t.date} {t.start_time} ({t.status})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
-              <button
-                className={isActive ? "danger-btn" : "primary-btn"}
-                style={{ width: "auto" }}
-                onClick={toggleShare}
-                disabled={loading}
-              >
-                {isActive ? "Vô hiệu hóa link" : "Mở lại link"}
-              </button>
-              <button
-                className="secondary-btn"
-                style={{ width: "auto" }}
-                onClick={regenerateShare}
-                disabled={loading}
-              >
-                Tạo link mới
-              </button>
-            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="settings-section">
+        <CardContent style={{ paddingTop: "1.5rem" }}>
+          <h3>Nhập / Xuất Excel</h3>
+          <p className="text-muted">
+            Lưu trữ dữ liệu học tập ra file Excel hoặc import từ file Excel vào
+            hệ thống.
+          </p>
+          <div
+            style={{
+              marginTop: "1rem",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "1rem",
+            }}
+          >
+            <button
+              className="primary-btn"
+              style={{ width: "auto", margin: 0 }}
+              onClick={exportToExcel}
+              disabled={loading}
+            >
+              {loading ? "Đang tải..." : "Xuất dữ liệu (.xlsx)"}
+            </button>
+
+            <input
+              type="file"
+              accept=".xlsx"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+            <button
+              className="secondary-btn"
+              style={{ width: "auto", margin: 0 }}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+            >
+              Nhập dữ liệu (.xlsx)
+            </button>
           </div>
-        ) : (
+        </CardContent>
+      </Card>
+
+      <Card className="settings-section">
+        <CardContent style={{ paddingTop: "1.5rem" }}>
+          <h3>Đồng bộ dữ liệu cũ</h3>
+          <p className="text-muted">
+            Lấy dữ liệu từ phiên bản dùng thử (chỉ lưu trên máy này) và đẩy lên
+            tài khoản của bạn.
+          </p>
           <button
             className="primary-btn"
-            onClick={generateShareLink}
+            onClick={importLocalData}
             disabled={loading}
           >
-            Tạo link chia sẻ
+            {loading ? "Đang xử lý..." : "Đồng bộ từ LocalStorage"}
           </button>
-        )}
-      </div>
+        </CardContent>
+      </Card>
+
+      <Card className="settings-section">
+        <CardContent style={{ paddingTop: "1.5rem" }}>
+          <h3>Quản lý dữ liệu cục bộ</h3>
+          <p className="text-muted">
+            Tính năng này giúp giải phóng dung lượng hoặc xóa các cài đặt cũ
+            (như chế độ xem, form task tạm thời). Dữ liệu trên mây sẽ không bị
+            ảnh hưởng.
+          </p>
+          <button
+            className="danger-btn"
+            style={{ width: "auto", marginTop: "1rem" }}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm (LocalStorage)? Phiên đăng nhập hiện tại có thể bị thoát và các thiết lập hiển thị sẽ bị reset.",
+                )
+              ) {
+                localStorage.clear();
+                window.location.reload();
+              }
+            }}
+          >
+            Xóa bộ nhớ đệm (LocalStorage)
+          </button>
+        </CardContent>
+      </Card>
+
+      <Card className="settings-section">
+        <CardContent style={{ paddingTop: "1.5rem" }}>
+          <h3>Chia sẻ (Public Link)</h3>
+          <p className="text-muted">
+            Tạo link chia sẻ tiến độ học tập (chỉ đọc) cho bạn bè.
+          </p>
+
+          {hasShare ? (
+            <div>
+              <div className="share-link-box">
+                <input
+                  type="text"
+                  readOnly
+                  value={
+                    isActive
+                      ? `${window.location.origin}/${shareSlug}/shared`
+                      : "Đã vô hiệu hóa"
+                  }
+                />
+                <button
+                  className="secondary-btn"
+                  disabled={!isActive}
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/${shareSlug}/shared`,
+                    )
+                  }
+                >
+                  Copy Link
+                </button>
+              </div>
+              <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
+                <button
+                  className={isActive ? "danger-btn" : "primary-btn"}
+                  style={{ width: "auto" }}
+                  onClick={toggleShare}
+                  disabled={loading}
+                >
+                  {isActive ? "Vô hiệu hóa link" : "Mở lại link"}
+                </button>
+                <button
+                  className="secondary-btn"
+                  style={{ width: "auto" }}
+                  onClick={regenerateShare}
+                  disabled={loading}
+                >
+                  Tạo link mới
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={generateShareLink}
+              disabled={loading}
+            >
+              Tạo link chia sẻ
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {importPreview && (
         <div className="task-form-overlay" style={{ zIndex: 1000 }}>
-          <div
-            className="task-form-container card"
+          <Card
+            className="task-form-container"
             style={{
               maxWidth: "600px",
               width: "100%",
@@ -612,13 +631,14 @@ export const Settings: React.FC = () => {
               }}
             >
               <h3 style={{ margin: 0 }}>Xác nhận Nhập Dữ Liệu</h3>
-              <button
-                className="secondary-btn icon-btn"
+              <Button
+                variant="secondary"
+                size="icon"
                 onClick={() => setImportPreview(null)}
                 style={{ width: "auto" }}
               >
                 Đóng
-              </button>
+              </Button>
             </div>
 
             <p style={{ marginBottom: "1rem" }}>
@@ -677,22 +697,22 @@ export const Settings: React.FC = () => {
             </div>
 
             <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-              <button
-                className="secondary-btn"
+              <Button
+                variant="secondary"
                 onClick={() => setImportPreview(null)}
                 disabled={loading}
               >
                 Hủy
-              </button>
-              <button
-                className="primary-btn"
+              </Button>
+              <Button
+                variant="primary"
                 onClick={confirmImport}
                 disabled={loading}
               >
                 {loading ? "Đang xử lý..." : "Xác nhận Nhập"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

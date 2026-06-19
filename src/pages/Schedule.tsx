@@ -4,9 +4,9 @@ import { useAuth } from "../hooks/useAuth";
 import { Task } from "../types";
 import { TaskDisplay } from "../components/tasks/TaskDisplay";
 import { TaskForm } from "../components/TaskForm";
-import { format, addDays, subDays } from "date-fns";
-import { vi } from "date-fns/locale";
-import { PartyPopper, ChevronLeft, ChevronRight } from "lucide-react";
+import { format } from "date-fns";
+import { PartyPopper } from "lucide-react";
+import { ScheduleHeader } from "../components/schedule/ScheduleHeader";
 
 export const Schedule: React.FC = () => {
   const { user } = useAuth();
@@ -203,9 +203,6 @@ export const Schedule: React.FC = () => {
   };
 
   const completedCount = tasks.filter((t) => t.status === "done").length;
-  const progress = tasks.length
-    ? Math.round((completedCount / tasks.length) * 100)
-    : 0;
 
   // Group by category
   const groups = tasks.reduce(
@@ -218,196 +215,20 @@ export const Schedule: React.FC = () => {
   );
 
   return (
-    <div className="page-container">
-      <header
-        className="page-header today-header"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-          alignItems: "stretch",
+    <div className="page-container" style={{ padding: "1rem" }}>
+      <ScheduleHeader
+        tasksCount={tasks.length}
+        completedCount={completedCount}
+        movedCount={tasks.filter((t) => t.status === "moved").length}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        onAddTask={() => {
+          setEditingTask({ date: selectedDate });
+          setIsFormOpen(true);
         }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-            gap: "1rem",
-          }}
-        >
-          <div>
-            <h1>Lịch trình</h1>
-            <p className="text-muted">Quản lý task theo ngày</p>
-          </div>
-
-          <div
-            className="header-stats-row"
-            style={{ display: "flex", gap: "1rem" }}
-          >
-            <div
-              className="stat-box"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: "1.25rem", fontWeight: 700 }}>
-                {tasks.length}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                Tổng
-              </div>
-            </div>
-            <div
-              className="stat-box"
-              style={{
-                background: "rgba(16, 185, 129, 0.1)",
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.25rem",
-                  fontWeight: 700,
-                  color: "var(--success)",
-                }}
-              >
-                {completedCount}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--success)" }}>
-                Xong ({progress}%)
-              </div>
-            </div>
-            <div
-              className="stat-box"
-              style={{
-                background: "rgba(245, 158, 11, 0.1)",
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "1.25rem",
-                  fontWeight: 700,
-                  color: "var(--warning)",
-                }}
-              >
-                {tasks.filter((t) => t.status === "moved").length}
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--warning)" }}>
-                Dời
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: "0.5rem",
-            background: "rgba(0,0,0,0.2)",
-            padding: "0.5rem",
-            borderRadius: "8px",
-          }}
-        >
-          <button
-            className="secondary-btn icon-btn"
-            onClick={() =>
-              setSelectedDate(
-                format(subDays(new Date(selectedDate), 1), "yyyy-MM-dd"),
-              )
-            }
-            title="Ngày trước"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-            style={{
-              background: "transparent",
-              color: "var(--text-main)",
-              border: "none",
-              outline: "none",
-              padding: "0.5rem",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          />
-          <button
-            className="secondary-btn"
-            onClick={() => setSelectedDate(format(new Date(), "yyyy-MM-dd"))}
-          >
-            Hôm nay
-          </button>
-          <button
-            className="secondary-btn icon-btn"
-            onClick={() =>
-              setSelectedDate(
-                format(addDays(new Date(selectedDate), 1), "yyyy-MM-dd"),
-              )
-            }
-            title="Ngày sau"
-          >
-            <ChevronRight size={18} />
-          </button>
-          <span style={{ marginLeft: "0.5rem", color: "var(--text-muted)" }}>
-            {format(new Date(selectedDate), "EEEE", { locale: vi })}
-          </span>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "1rem",
-          }}
-        >
-          <div className="segmented-control">
-            <button
-              className={`segmented-btn ${viewMode === "list" ? "active" : ""}`}
-              onClick={() => setViewMode("list")}
-            >
-              List
-            </button>
-            <button
-              className={`segmented-btn ${viewMode === "timeline" ? "active" : ""}`}
-              onClick={() => setViewMode("timeline")}
-            >
-              Timeline
-            </button>
-            <button
-              className={`segmented-btn ${viewMode === "compact" ? "active" : ""}`}
-              onClick={() => setViewMode("compact")}
-            >
-              Compact
-            </button>
-          </div>
-          <button
-            className="primary-btn"
-            style={{ width: "auto", margin: 0 }}
-            onClick={() => {
-              setEditingTask({ date: selectedDate });
-              setIsFormOpen(true);
-            }}
-          >
-            + Thêm Task
-          </button>
-        </div>
-      </header>
+      />
 
       {loading ? (
         <div className="loading-state">Đang tải...</div>

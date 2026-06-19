@@ -15,6 +15,7 @@ import {
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { GoalsPanel } from "../components/GoalsPanel";
+import { Card } from "../components/ui/Card";
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -85,8 +86,7 @@ export const Dashboard: React.FC = () => {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
           {delayedTasks.length > 0 && (
-            <div
-              className="card"
+            <Card
               style={{
                 borderLeft: "4px solid var(--warning)",
                 background: "rgba(245, 158, 11, 0.05)",
@@ -128,7 +128,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <Link
                 to="/attention"
-                className="secondary-btn"
+                className="ui-btn ui-btn-secondary"
                 style={{
                   textDecoration: "none",
                   display: "flex",
@@ -138,7 +138,7 @@ export const Dashboard: React.FC = () => {
               >
                 Xử lý ngay <ArrowRight size={16} />
               </Link>
-            </div>
+            </Card>
           )}
 
           <div
@@ -176,8 +176,7 @@ export const Dashboard: React.FC = () => {
               gap: "1.5rem",
             }}
           >
-            <div
-              className="card"
+            <Card
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -194,10 +193,9 @@ export const Dashboard: React.FC = () => {
                 Tiến độ môn học (Tháng)
               </h3>
               <CategoryProgress tasks={monthTasks} />
-            </div>
+            </Card>
 
-            <div
-              className="card"
+            <Card
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -216,7 +214,7 @@ export const Dashboard: React.FC = () => {
               <div style={{ margin: "-1rem" }}>
                 <GoalsPanel periodType="week" periodStartDate={weekStartStr} />
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       )}
