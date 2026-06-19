@@ -8,12 +8,23 @@ import { format } from "date-fns";
 import { PartyPopper } from "lucide-react";
 import { ScheduleHeader } from "../components/schedule/ScheduleHeader";
 import { Button } from "../components/ui/Button";
+import { useSearchParams } from "react-router-dom";
 
 export const Schedule: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlDate = searchParams.get("date");
+
   const [selectedDate, setSelectedDate] = useState<string>(
-    format(new Date(), "yyyy-MM-dd"),
+    urlDate || format(new Date(), "yyyy-MM-dd"),
   );
+
+  // Sync state to URL
+  useEffect(() => {
+    if (selectedDate !== searchParams.get("date")) {
+      setSearchParams({ date: selectedDate }, { replace: false });
+    }
+  }, [selectedDate, searchParams, setSearchParams]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,8 +54,6 @@ export const Schedule: React.FC = () => {
     setTasks([]); // clear stale tasks
     setOverdueTasks([]); // clear stale overdue tasks
 
-    const todayStr = format(new Date(), "yyyy-MM-dd");
-
     // Fetch selected date tasks
     const { data: dayData, error: dayErr } = await supabase
       .from("tasks")
@@ -53,12 +62,12 @@ export const Schedule: React.FC = () => {
       .eq("date", selectedDate)
       .order("start_time", { ascending: true });
 
-    // Fetch overdue tasks (only overdue relative to today, so if viewing future date, overdue is still < today)
+    // Fetch overdue tasks relative to selectedDate
     const { data: overdueData, error: overErr } = await supabase
       .from("tasks")
       .select("*")
       .eq("user_id", user.id)
-      .lt("date", todayStr)
+      .lt("date", selectedDate)
       .in("status", ["todo", "in_progress", "skipped"])
       .order("date", { ascending: true })
       .order("start_time", { ascending: true });
