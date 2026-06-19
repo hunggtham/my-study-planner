@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "./ui/Button";
+import "../styles-taskform.css"; // Ensure standard modal styles are applied
 
 interface GoalBreakdownFormProps {
   goal: Goal;
@@ -168,112 +169,19 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
   const nextStep = () => setStep((s) => Math.min(s + 1, 4) as any);
   const prevStep = () => setStep((s) => Math.max(s - 1, 1) as any);
 
-  const renderStepper = () => (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        marginBottom: "2rem",
-        position: "relative",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: 0,
-          right: 0,
-          height: "2px",
-          background: "var(--border-color)",
-          zIndex: 0,
-        }}
-      />
-      {[
-        { num: 1, icon: <Settings size={18} />, label: "Thiết lập" },
-        { num: 2, icon: <Calendar size={18} />, label: "Lịch trình" },
-        { num: 3, icon: <LayoutList size={18} />, label: "Phương pháp" },
-        { num: 4, icon: <CheckCircle2 size={18} />, label: "Xác nhận" },
-      ].map((s) => (
-        <div
-          key={s.num}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.5rem",
-            zIndex: 1,
-          }}
-        >
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background:
-                step >= s.num ? "var(--primary)" : "var(--bg-surface)",
-              color: step >= s.num ? "#fff" : "var(--text-muted)",
-              border: `2px solid ${step >= s.num ? "var(--primary)" : "var(--border-color)"}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.3s",
-            }}
-          >
-            {s.icon}
-          </div>
-          <span
-            style={{
-              fontSize: "0.75rem",
-              fontWeight: step >= s.num ? 600 : 400,
-              color:
-                step >= s.num ? "var(--text-primary)" : "var(--text-muted)",
-            }}
-          >
-            {s.label}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
-    <div
-      className="task-form-overlay"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-        background: "rgba(15, 23, 42, 0.8)",
-        backdropFilter: "blur(4px)",
-      }}
-    >
+    <div className="task-form-overlay">
       <div
-        className="ui-card"
+        className="task-form-container"
         style={{
-          width: "100%",
           maxWidth: "760px",
           maxHeight: "90dvh",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
         }}
       >
-        <div
-          style={{
-            padding: "1.25rem 1.5rem",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        {/* Header */}
+        <div className="task-form-header">
           <div>
             <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>
               Tách mục tiêu
@@ -285,14 +193,87 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
               {goal.title}
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Đóng
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            X
           </Button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}>
-          {renderStepper()}
+        {/* Scrollable Body */}
+        <div
+          className="task-form-body"
+          style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}
+        >
+          {/* Stepper */}
+          <div
+            className="stepper-container"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "2rem",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: 0,
+                right: 0,
+                height: "2px",
+                background: "var(--border-color)",
+                zIndex: 0,
+              }}
+            />
+            {[
+              { num: 1, icon: <Settings size={18} />, label: "Thiết lập" },
+              { num: 2, icon: <Calendar size={18} />, label: "Lịch trình" },
+              { num: 3, icon: <LayoutList size={18} />, label: "Phương pháp" },
+              { num: 4, icon: <CheckCircle2 size={18} />, label: "Xác nhận" },
+            ].map((s) => (
+              <div
+                key={s.num}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  zIndex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background:
+                      step >= s.num ? "var(--primary)" : "var(--bg-surface)",
+                    color: step >= s.num ? "#fff" : "var(--text-muted)",
+                    border: `2px solid ${step >= s.num ? "var(--primary)" : "var(--border-color)"}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {s.icon}
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: step >= s.num ? 600 : 400,
+                    color:
+                      step >= s.num
+                        ? "var(--text-primary)"
+                        : "var(--text-muted)",
+                  }}
+                >
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
 
+          {/* Step 1 Content */}
           {step === 1 && (
             <div
               style={{
@@ -308,55 +289,23 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                   gap: "1rem",
                 }}
               >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Tổng khối lượng
-                  </label>
+                <div className="form-group">
+                  <label>Tổng khối lượng</label>
                   <input
                     type="number"
                     min="1"
                     value={totalQuantity}
                     onChange={(e) => setTotalQuantity(Number(e.target.value))}
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="form-input"
                   />
                 </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Đơn vị (VD: từ vựng, bài tập)
-                  </label>
+                <div className="form-group">
+                  <label>Đơn vị (VD: từ vựng, bài tập)</label>
                   <input
                     type="text"
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="form-input"
                   />
                 </div>
               </div>
@@ -368,46 +317,21 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                   gap: "1rem",
                 }}
               >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Khối lượng mỗi buổi
-                  </label>
+                <div className="form-group">
+                  <label>Khối lượng mỗi buổi</label>
                   <input
                     type="number"
                     min="1"
                     value={perSession}
                     onChange={(e) => setPerSession(Number(e.target.value))}
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="form-input"
                   />
                 </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Số buổi dự kiến
-                  </label>
+                <div className="form-group">
+                  <label>Số buổi dự kiến</label>
                   <div
                     style={{
-                      padding: "0.5rem",
+                      padding: "0.75rem",
                       background: "var(--bg-muted)",
                       borderRadius: "var(--radius-sm)",
                       border: "1px solid var(--border-color)",
@@ -427,53 +351,21 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                   gap: "1rem",
                 }}
               >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Phân loại (Category)
-                  </label>
+                <div className="form-group">
+                  <label>Phân loại (Category)</label>
                   <input
                     type="text"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="form-input"
                   />
                 </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Độ ưu tiên
-                  </label>
+                <div className="form-group">
+                  <label>Độ ưu tiên</label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as any)}
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="form-input"
                   >
                     <option value="low">Thấp</option>
                     <option value="medium">Trung bình</option>
@@ -484,6 +376,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
             </div>
           )}
 
+          {/* Step 2 Content */}
           {step === 2 && (
             <div
               style={{
@@ -499,53 +392,21 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                   gap: "1rem",
                 }}
               >
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Ngày bắt đầu
-                  </label>
+                <div className="form-group">
+                  <label>Ngày bắt đầu</label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="form-input"
                   />
                 </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Quy tắc rải lịch
-                  </label>
+                <div className="form-group">
+                  <label>Quy tắc rải lịch</label>
                   <select
                     value={scheduleRule}
                     onChange={(e) => setScheduleRule(e.target.value as any)}
-                    style={{
-                      width: "100%",
-                      padding: "0.5rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="form-input"
                   >
                     <option value="every_day">Mỗi ngày</option>
                     <option value="weekdays">
@@ -573,7 +434,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.5rem",
-                    fontSize: "0.9rem",
+                    fontSize: "0.95rem",
                   }}
                 >
                   <div
@@ -608,6 +469,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
             </div>
           )}
 
+          {/* Step 3 Content */}
           {step === 3 && (
             <div
               style={{
@@ -616,17 +478,8 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                 gap: "1.5rem",
               }}
             >
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "0.5rem",
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                  }}
-                >
-                  Chế độ tách
-                </label>
+              <div className="form-group">
+                <label>Chế độ tách</label>
                 <div
                   className="segmented-control"
                   style={{
@@ -641,7 +494,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                     onClick={() => setBreakdownMode("auto")}
                     style={{
                       flex: 1,
-                      padding: "0.5rem",
+                      padding: "0.75rem",
                       background:
                         breakdownMode === "auto"
                           ? "var(--primary-bg)"
@@ -660,7 +513,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                     onClick={() => setBreakdownMode("manual")}
                     style={{
                       flex: 1,
-                      padding: "0.5rem",
+                      padding: "0.75rem",
                       background:
                         breakdownMode === "manual"
                           ? "var(--primary-bg)"
@@ -702,14 +555,8 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                           newTasks[index].date = e.target.value;
                           setManualTasks(newTasks);
                         }}
-                        style={{
-                          width: "130px",
-                          padding: "0.5rem",
-                          borderRadius: "var(--radius-sm)",
-                          border: "1px solid var(--border-color)",
-                          background: "var(--bg-panel)",
-                          color: "var(--text-primary)",
-                        }}
+                        className="form-input"
+                        style={{ width: "140px" }}
                       />
                       <input
                         type="text"
@@ -720,14 +567,8 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                           newTasks[index].title = e.target.value;
                           setManualTasks(newTasks);
                         }}
-                        style={{
-                          flex: 1,
-                          padding: "0.5rem",
-                          borderRadius: "var(--radius-sm)",
-                          border: "1px solid var(--border-color)",
-                          background: "var(--bg-panel)",
-                          color: "var(--text-primary)",
-                        }}
+                        className="form-input"
+                        style={{ flex: 1 }}
                       />
                       <Button
                         variant="danger"
@@ -763,6 +604,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
             </div>
           )}
 
+          {/* Step 4 Content */}
           {step === 4 && (
             <div
               style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
@@ -803,7 +645,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                       style={{
                         fontSize: "0.85rem",
                         color: "var(--text-secondary)",
-                        width: "90px",
+                        width: "100px",
                         fontWeight: 500,
                       }}
                     >
@@ -817,12 +659,11 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
           )}
         </div>
 
+        {/* Footer Actions */}
         <div
+          className="task-form-actions"
           style={{
-            padding: "1.25rem 1.5rem",
             borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
             background: "var(--bg-surface)",
           }}
         >
