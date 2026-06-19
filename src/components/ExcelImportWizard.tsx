@@ -22,7 +22,7 @@ interface ExcelImportWizardProps {
 }
 
 // -------------------------------------
-// UTILS
+// UTILITY FUNCTIONS
 // -------------------------------------
 
 const parseExcelDate = (val: any): string | null => {
