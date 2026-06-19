@@ -7,6 +7,7 @@ import { TaskForm } from "../components/TaskForm";
 import { format } from "date-fns";
 import { PartyPopper } from "lucide-react";
 import { ScheduleHeader } from "../components/schedule/ScheduleHeader";
+import { Button } from "../components/ui/Button";
 
 export const Schedule: React.FC = () => {
   const { user } = useAuth();
@@ -39,34 +40,40 @@ export const Schedule: React.FC = () => {
   const fetchScheduleTasks = async () => {
     if (!user) return;
     setLoading(true);
+    setTasks([]); // clear stale tasks
+    setOverdueTasks([]); // clear stale overdue tasks
+
     const todayStr = format(new Date(), "yyyy-MM-dd");
 
-    // Fetch selected date OR overdue tasks
-    const { data, error } = await supabase
+    // Fetch selected date tasks
+    const { data: dayData, error: dayErr } = await supabase
       .from("tasks")
       .select("*")
       .eq("user_id", user.id)
-      .or(
-        `date.eq.${selectedDate},and(date.lt.${todayStr},status.in.(todo,in_progress))`,
-      )
+      .eq("date", selectedDate)
+      .order("start_time", { ascending: true });
+
+    // Fetch overdue tasks (only overdue relative to today, so if viewing future date, overdue is still < today)
+    const { data: overdueData, error: overErr } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user.id)
+      .lt("date", todayStr)
+      .in("status", ["todo", "in_progress", "skipped"])
       .order("date", { ascending: true })
       .order("start_time", { ascending: true });
 
-    if (error) {
-      console.error(error);
-    } else {
-      const allFetched = data || [];
-      const dayTasks = allFetched.filter((t) => t.date === selectedDate);
-      const overdue = allFetched.filter(
-        (t) =>
-          t.date !== selectedDate &&
-          t.date < todayStr &&
-          ["todo", "in_progress"].includes(t.status),
-      );
+    if (dayErr) console.error("Day fetch error:", dayErr);
+    if (overErr) console.error("Overdue fetch error:", overErr);
 
-      setTasks(dayTasks);
-      setOverdueTasks(overdue);
-    }
+    setTasks(dayData || []);
+    // Filter out overdue tasks that happen to be on the selectedDate (if user selects a past date)
+    // so they don't appear in both lists.
+    const filteredOverdue = (overdueData || []).filter(
+      (t) => t.date !== selectedDate,
+    );
+    setOverdueTasks(filteredOverdue);
+
     setLoading(false);
   };
 
@@ -230,6 +237,41 @@ export const Schedule: React.FC = () => {
         }}
       />
 
+      {selectedDate < format(new Date(), "yyyy-MM-dd") && (
+        <div
+          style={{
+            background: "var(--bg-muted)",
+            border: "1px solid var(--border-color)",
+            padding: "0.75rem",
+            borderRadius: "var(--radius-sm)",
+            marginBottom: "1.5rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div
+            style={{
+              color: "var(--text-secondary)",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+            }}
+          >
+            Bạn đang xem lịch trình cũ (
+            {format(new Date(selectedDate), "dd/MM/yyyy")})
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setSelectedDate(format(new Date(), "yyyy-MM-dd"))}
+          >
+            Về hôm nay
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <div className="loading-state">Đang tải...</div>
       ) : (
@@ -302,16 +344,32 @@ export const Schedule: React.FC = () => {
               >
                 Thêm task mới hoặc mở Lịch tháng để lên lịch.
               </p>
-              <button
-                className="primary-btn"
-                style={{ width: "auto" }}
-                onClick={() => {
-                  setEditingTask({ date: selectedDate });
-                  setIsFormOpen(true);
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
                 }}
               >
-                + Thêm Task
-              </button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setEditingTask({ date: selectedDate });
+                    setIsFormOpen(true);
+                  }}
+                >
+                  + Thêm task cho ngày này
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    setSelectedDate(format(new Date(), "yyyy-MM-dd"))
+                  }
+                >
+                  Về hôm nay
+                </Button>
+              </div>
             </div>
           ) : (
             <div
