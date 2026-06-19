@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { format, isValid, parse, parseISO } from "date-fns";
+import "../styles-taskform.css";
 
 interface ExcelImportWizardProps {
   onClose: () => void;
@@ -31,11 +32,7 @@ const parseExcelDate = (val: any): string | null => {
     return null;
   }
   if (typeof val === "number") {
-    // Excel serial number (days since 1900-01-01)
-    // 25569 is 1970-01-01
-    // Subtract 1 extra day for the 1900 leap year bug
     const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-    // fix timezone shifts by using UTC methods if needed, or simply format:
     const utcDate = new Date(
       date.getUTCFullYear(),
       date.getUTCMonth(),
@@ -45,7 +42,6 @@ const parseExcelDate = (val: any): string | null => {
     return null;
   }
   if (typeof val === "string") {
-    // try to parse ISO or DD/MM/YYYY
     const parsedISO = parseISO(val);
     if (isValid(parsedISO)) return format(parsedISO, "yyyy-MM-dd");
 
@@ -64,7 +60,8 @@ const normalizePriority = (val: string) => {
 
 const normalizeStatus = (val: string) => {
   const v = String(val).toLowerCase().trim();
-  if (v.includes("hoàn thành") || v.includes("done")) return "done";
+  if (v.includes("hoàn thành") || v.includes("done") || v.includes("xong"))
+    return "done";
   if (v.includes("đang làm") || v.includes("in_progress")) return "in_progress";
   if (v.includes("bỏ qua") || v.includes("skipped")) return "skipped";
   if (v.includes("dời") || v.includes("moved")) return "moved";
@@ -76,7 +73,6 @@ const extractTime = (
 ): { start_time?: string; end_time?: string } => {
   if (!val || typeof val !== "string") return {};
   const v = val.trim();
-  // Expect format like "20:35 - 20:55"
   const match = v.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
   if (match) {
     return { start_time: match[1], end_time: match[2] };
@@ -126,8 +122,9 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
   });
 
   // -------------------------------------
-  // Step 1: Upload
+  // Handlers
   // -------------------------------------
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -143,6 +140,10 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
         let initialSheet = wb.SheetNames[0];
         if (wb.SheetNames.includes("Lịch tháng 6"))
           initialSheet = "Lịch tháng 6";
+        else if (wb.SheetNames.includes("Mục tiêu tuần"))
+          initialSheet = "Mục tiêu tuần";
+        else if (wb.SheetNames.includes("Mục tiêu tháng"))
+          initialSheet = "Mục tiêu tháng";
 
         setSelectedSheet(initialSheet);
         updateSheetPreview(wb, initialSheet, 0);
@@ -154,9 +155,6 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
     reader.readAsBinaryString(file);
   };
 
-  // -------------------------------------
-  // Step 2: Choose Sheet
-  // -------------------------------------
   const updateSheetPreview = (
     wb: WorkBook,
     sheetName: string,
@@ -164,18 +162,16 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
   ) => {
     if (!wb || !sheetName) return;
     const ws = wb.Sheets[sheetName];
-    // get raw matrix to show preview and pick header
     const rawData = utils.sheet_to_json(ws, {
       header: 1,
       raw: true,
     }) as any[][];
-    setSheetPreviewData(rawData.slice(0, 20)); // preview first 20 rows
+    setSheetPreviewData(rawData.slice(0, 20));
 
     if (rawData[hIndex]) {
       setHeaders(rawData[hIndex].map((h) => String(h || "").trim()));
     }
 
-    // Auto-detect mode
     if (
       sheetName.toLowerCase().includes("tháng") &&
       sheetName.toLowerCase().includes("mục tiêu")
@@ -203,16 +199,13 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
     if (workbook) updateSheetPreview(workbook, selectedSheet, idx);
   };
 
-  // -------------------------------------
-  // Step 3: Column Mapping
-  // -------------------------------------
   const autoMapColumns = () => {
     const newMap: Record<string, string> = {};
     const hLower = headers.map((h) => h.toLowerCase());
 
     if (importMode === "tasks") {
       hLower.forEach((h, i) => {
-        if (h.includes("ngày dời") || h.includes("action")) return; // ignore these usually
+        if (h.includes("ngày dời") || h.includes("action")) return;
         if (h.includes("ngày") || h === "date") newMap["date"] = headers[i];
         else if (h.includes("task chính") || h === "title")
           newMap["title"] = headers[i];
@@ -253,21 +246,17 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
 
   useEffect(() => {
     if (step === 3) autoMapColumns();
-  }, [step]);
+  }, [step, headers, importMode]);
 
   const updateMapping = (dbField: string, excelHeader: string) => {
     setMapping((prev) => ({ ...prev, [dbField]: excelHeader }));
   };
 
-  // -------------------------------------
-  // Step 4: Preview
-  // -------------------------------------
   const generatePreview = async () => {
     if (!workbook || !selectedSheet || !user) return;
     setIsProcessing(true);
 
     try {
-      // 1. Fetch existing data for duplicate matching
       if (importMode === "tasks") {
         const { data } = await supabase
           .from("tasks")
@@ -282,7 +271,6 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
         if (data) setExistingData(data);
       }
 
-      // 2. Parse sheet
       const ws = workbook.Sheets[selectedSheet];
       const rawJson = utils.sheet_to_json(ws, {
         range: headerRowIndex,
@@ -297,13 +285,9 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
         };
 
         if (importMode === "tasks") {
-          const rawDate = row[mapping["date"]];
-          const rawTitle = row[mapping["title"]];
-          const rawCategory = row[mapping["category"]];
-
-          parsed.date = parseExcelDate(rawDate);
-          parsed.title = String(rawTitle || "").trim();
-          parsed.category = String(rawCategory || "").trim();
+          parsed.date = parseExcelDate(row[mapping["date"]]);
+          parsed.title = String(row[mapping["title"]] || "").trim();
+          parsed.category = String(row[mapping["category"]] || "").trim();
           parsed.status = normalizeStatus(row[mapping["status"]]);
           parsed.priority = normalizePriority(row[mapping["priority"]]);
           parsed.description = String(row[mapping["description"]] || "");
@@ -314,12 +298,10 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
           parsed.start_time = timeData.start_time || "";
           parsed.end_time = timeData.end_time || "";
 
-          // Identify missing/invalid data
-          if (!parsed.date) parsed.invalidReasons.push("Thiếu hoặc sai ngày");
+          if (!parsed.date) parsed.invalidReasons.push("Thiếu ngày");
           if (!parsed.title) parsed.invalidReasons.push("Thiếu tiêu đề");
 
           if (parsed.invalidReasons.length === 0) {
-            // Check duplicates: date + start_time + title + category
             const existing = existingData.find(
               (e) =>
                 e.date === parsed.date &&
@@ -335,18 +317,15 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
             }
           }
         } else {
-          // Goals Mode
           const rawPeriod = row[mapping["period_start_date"]];
-          const rawTitle = row[mapping["title"]];
-
-          // Goals don't have to be strict YYYY-MM-DD from excel if they just write "Tuần 1",
-          // but our schema expects YYYY-MM-DD. So we try to parse it.
           parsed.period_start_date =
             parseExcelDate(rawPeriod) || String(rawPeriod || "").trim();
-          parsed.title = String(rawTitle || "").trim();
+          parsed.title = String(row[mapping["title"]] || "").trim();
           parsed.category = String(row[mapping["category"]] || "").trim();
-          parsed.status = normalizeStatus(row[mapping["status"]]);
-          parsed.status = parsed.status === "done" ? "done" : "active"; // goal status is active or done
+          parsed.status =
+            normalizeStatus(row[mapping["status"]]) === "done"
+              ? "done"
+              : "active";
           parsed.period_type = importMode === "weekly_goals" ? "week" : "month";
 
           if (!parsed.title) parsed.invalidReasons.push("Thiếu mục tiêu");
@@ -392,17 +371,12 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
       else if (action === "skip_all") r.action = "skip";
       return r;
     });
-    // If specific bulk action is requested
     if (action === "reset") {
       newRows.forEach((r) => {
         if (r.invalidReasons.length > 0) r.action = "skip";
         else r.action = r._dbId ? "update" : "add";
       });
-    } else if (
-      action === "add_all" ||
-      action === "update_all" ||
-      action === "skip_all"
-    ) {
+    } else if (["add_all", "update_all", "skip_all"].includes(action)) {
       const act = action.split("_")[0];
       newRows.forEach((r) => {
         if (r.invalidReasons.length === 0) r.action = act;
@@ -411,9 +385,6 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
     setPreviewRows(newRows);
   };
 
-  // -------------------------------------
-  // Step 5: Confirm Write
-  // -------------------------------------
   const executeImport = async () => {
     if (!user) return;
     setIsProcessing(true);
@@ -427,11 +398,9 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
     const toUpdate: any[] = [];
 
     previewRows.forEach((r) => {
-      if (r.invalidReasons.length > 0) {
-        invalid++;
-      } else if (r.action === "skip") {
-        skipped++;
-      } else {
+      if (r.invalidReasons.length > 0) invalid++;
+      else if (r.action === "skip") skipped++;
+      else {
         const payload = { ...r };
         delete payload.action;
         delete payload.invalidReasons;
@@ -447,17 +416,12 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
 
     try {
       const table = importMode === "tasks" ? "tasks" : "goals";
-
-      // 1. Insert
       if (toAdd.length > 0) {
         const { error } = await supabase.from(table).insert(toAdd);
         if (error) throw error;
         added = toAdd.length;
       }
-
-      // 2. Update (Supabase requires upsert or individual updates)
       if (toUpdate.length > 0) {
-        // Upsert is safer for batch updates if we have the IDs
         const { error } = await supabase.from(table).upsert(toUpdate);
         if (error) throw error;
         updated = toUpdate.length;
@@ -477,115 +441,11 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
   // -------------------------------------
   // Render
   // -------------------------------------
-  const renderStepper = () => (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        marginBottom: "2rem",
-        position: "relative",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: 0,
-          right: 0,
-          height: "2px",
-          background: "var(--border-color)",
-          zIndex: 0,
-        }}
-      />
-      {[
-        { num: 1, icon: <UploadCloud size={16} />, label: "Tải file" },
-        { num: 2, icon: <FileSpreadsheet size={16} />, label: "Chọn sheet" },
-        { num: 3, icon: <Columns size={16} />, label: "Map cột" },
-        { num: 4, icon: <Eye size={16} />, label: "Xem trước" },
-        { num: 5, icon: <CheckCircle2 size={16} />, label: "Xác nhận" },
-      ].map((s) => (
-        <div
-          key={s.num}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.5rem",
-            zIndex: 1,
-          }}
-        >
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              background:
-                step >= s.num ? "var(--primary)" : "var(--bg-surface)",
-              color: step >= s.num ? "#fff" : "var(--text-muted)",
-              border: `2px solid ${step >= s.num ? "var(--primary)" : "var(--border-color)"}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.3s",
-            }}
-          >
-            {s.icon}
-          </div>
-          <span
-            style={{
-              fontSize: "0.7rem",
-              fontWeight: step >= s.num ? 600 : 400,
-              color:
-                step >= s.num ? "var(--text-primary)" : "var(--text-muted)",
-              display: "none",
-            }}
-            className="sm-block"
-          >
-            {s.label}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
 
   return (
-    <div
-      className="task-form-overlay"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-        background: "rgba(15, 23, 42, 0.8)",
-        backdropFilter: "blur(4px)",
-      }}
-    >
-      <div
-        className="ui-card"
-        style={{
-          width: "100%",
-          maxWidth: "900px",
-          height: "90dvh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
-        }}
-      >
-        <div
-          style={{
-            padding: "1.25rem 1.5rem",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+    <div className="task-form-overlay">
+      <div className="task-form-container" style={{ maxWidth: "900px" }}>
+        <div className="task-form-header">
           <div>
             <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>
               Import Excel
@@ -597,13 +457,87 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
               Đưa dữ liệu vào Database an toàn
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Đóng
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            X
           </Button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}>
-          {renderStepper()}
+        <div className="task-form-body" style={{ padding: "1.5rem" }}>
+          <div
+            className="stepper-container"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "2rem",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: 0,
+                right: 0,
+                height: "2px",
+                background: "var(--border-color)",
+                zIndex: 0,
+              }}
+            />
+            {[
+              { num: 1, icon: <UploadCloud size={16} />, label: "Tải file" },
+              {
+                num: 2,
+                icon: <FileSpreadsheet size={16} />,
+                label: "Chọn sheet",
+              },
+              { num: 3, icon: <Columns size={16} />, label: "Map cột" },
+              { num: 4, icon: <Eye size={16} />, label: "Xem trước" },
+              { num: 5, icon: <CheckCircle2 size={16} />, label: "Xác nhận" },
+            ].map((s) => (
+              <div
+                key={s.num}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  zIndex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    background:
+                      step >= s.num ? "var(--primary)" : "var(--bg-surface)",
+                    color: step >= s.num ? "#fff" : "var(--text-muted)",
+                    border: `2px solid ${step >= s.num ? "var(--primary)" : "var(--border-color)"}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {s.icon}
+                </div>
+                <span
+                  className="sm-block"
+                  style={{
+                    display: "none",
+                    fontSize: "0.7rem",
+                    fontWeight: step >= s.num ? 600 : 400,
+                    color:
+                      step >= s.num
+                        ? "var(--text-primary)"
+                        : "var(--text-muted)",
+                  }}
+                >
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
 
           {step === 1 && (
             <div
@@ -649,6 +583,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
               }}
             >
               <div
+                className="form-group"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
@@ -656,26 +591,11 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
                 }}
               >
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Chọn Sheet
-                  </label>
+                  <label>Chọn Sheet</label>
                   <select
+                    className="form-input"
                     value={selectedSheet}
                     onChange={handleSheetChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
                   >
                     {sheets.map((s) => (
                       <option key={s} value={s}>
@@ -685,26 +605,11 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "0.5rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Chế độ Import
-                  </label>
+                  <label>Chế độ Import</label>
                   <select
+                    className="form-input"
                     value={importMode}
                     onChange={(e) => setImportMode(e.target.value as any)}
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border-color)",
-                      background: "var(--bg-panel)",
-                      color: "var(--text-primary)",
-                    }}
                   >
                     <option value="tasks">Task (Lịch trình)</option>
                     <option value="weekly_goals">Mục tiêu Tuần</option>
@@ -712,32 +617,17 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
                   </select>
                 </div>
               </div>
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "0.5rem",
-                    fontWeight: 500,
-                  }}
-                >
-                  Dòng chứa tiêu đề (Header Row Index - từ 0)
-                </label>
+              <div className="form-group">
+                <label>Dòng chứa tiêu đề (từ 0)</label>
                 <input
                   type="number"
                   min="0"
+                  className="form-input"
+                  style={{ width: "100px" }}
                   value={headerRowIndex}
                   onChange={handleHeaderRowChange}
-                  style={{
-                    width: "100px",
-                    padding: "0.5rem",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--border-color)",
-                    background: "var(--bg-panel)",
-                    color: "var(--text-primary)",
-                  }}
                 />
               </div>
-
               <div
                 style={{
                   overflowX: "auto",
@@ -798,9 +688,8 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
             >
               <p style={{ margin: 0, color: "var(--text-secondary)" }}>
                 Ghép cột trong Database với cột trong Excel. Hãy để trống nếu
-                cột không có trong Excel.
+                cột không có.
               </p>
-
               <div
                 style={{
                   display: "grid",
@@ -836,27 +725,12 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
                       { id: "status", label: "Trạng thái (status)" },
                     ]
                 ).map((field) => (
-                  <div
-                    key={field.id}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "0.25rem",
-                    }}
-                  >
-                    <label style={{ fontSize: "0.85rem", fontWeight: 500 }}>
-                      {field.label}
-                    </label>
+                  <div key={field.id} className="form-group">
+                    <label>{field.label}</label>
                     <select
+                      className="form-input"
                       value={mapping[field.id] || ""}
                       onChange={(e) => updateMapping(field.id, e.target.value)}
-                      style={{
-                        padding: "0.5rem",
-                        borderRadius: "var(--radius-sm)",
-                        border: "1px solid var(--border-color)",
-                        background: "var(--bg-panel)",
-                        color: "var(--text-primary)",
-                      }}
                     >
                       <option value="">-- Không có --</option>
                       {headers.map((h) => (
@@ -918,6 +792,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
                     width: "100%",
                     borderCollapse: "collapse",
                     fontSize: "0.85rem",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <thead>
@@ -1039,18 +914,13 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
                           }}
                         >
                           <select
+                            className="form-input"
+                            style={{ padding: "0.25rem", width: "auto" }}
                             value={r.action}
                             onChange={(e) =>
                               updateRowAction(idx, e.target.value)
                             }
                             disabled={r.invalidReasons.length > 0}
-                            style={{
-                              padding: "0.25rem",
-                              borderRadius: "var(--radius-sm)",
-                              border: "1px solid var(--border-color)",
-                              background: "var(--bg-surface)",
-                              color: "var(--text-primary)",
-                            }}
                           >
                             <option value="add">Add New</option>
                             <option value="update">Update</option>
@@ -1215,15 +1085,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
           )}
         </div>
 
-        <div
-          style={{
-            padding: "1.25rem 1.5rem",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            background: "var(--bg-surface)",
-          }}
-        >
+        <div className="task-form-actions">
           {step === 1 ? (
             <Button variant="ghost" onClick={onClose}>
               Đóng
