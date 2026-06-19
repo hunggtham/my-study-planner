@@ -1,9 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Goal, Task } from "../types";
 import { format, parseISO, addDays, isWeekend } from "date-fns";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
-import { Trash2, Plus, ArrowRight, ArrowLeft } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  ArrowRight,
+  ArrowLeft,
+  Calendar,
+  LayoutList,
+  Settings,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "./ui/Button";
 
 interface GoalBreakdownFormProps {
@@ -18,15 +27,25 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
   onSuccess,
 }) => {
   const { user } = useAuth();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
-  const [timezone, setTimezone] = useState(
-    Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul",
-  );
-  const [breakdownMode, setBreakdownMode] = useState<"manual" | "split">(
-    "manual",
-  );
+  // Step 1: Goal Setup
+  const [totalQuantity, setTotalQuantity] = useState<number>(100);
+  const [unit, setUnit] = useState<string>("từ vựng");
+  const [perSession, setPerSession] = useState<number>(20);
+  const [category, setCategory] = useState<string>(goal.category || "General");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
 
+  // Step 2: Schedule Rule
+  const [startDate, setStartDate] = useState<string>(
+    format(new Date(), "yyyy-MM-dd"),
+  );
+  const [scheduleRule, setScheduleRule] = useState<
+    "every_day" | "weekdays" | "weekends"
+  >("every_day");
+
+  // Step 3: Breakdown Method
+  const [breakdownMode, setBreakdownMode] = useState<"auto" | "manual">("auto");
   const [manualTasks, setManualTasks] = useState([
     {
       id: Date.now().toString(),
@@ -35,73 +54,95 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
     },
   ]);
 
-  const [splitCount, setSplitCount] = useState<number>(5);
-  const [splitTemplate, setSplitTemplate] = useState<string>(
-    `${goal.title} - Phần #{number}`,
-  );
-  const [scheduleTarget, setScheduleTarget] = useState<
-    "selected" | "range_every" | "range_weekday" | "range_weekend"
-  >("range_every");
-  const [startDate, setStartDate] = useState<string>(
-    format(new Date(), "yyyy-MM-dd"),
-  );
-  const [endDate, setEndDate] = useState<string>(
-    format(addDays(new Date(), 4), "yyyy-MM-dd"),
-  );
-
+  // Step 4: Preview & Confirm
   const [previewTasks, setPreviewTasks] = useState<Partial<Task>[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generatePreview = () => {
+  // Auto-calculations
+  const requiredSessions = useMemo(() => {
+    if (perSession <= 0) return 0;
+    return Math.ceil(totalQuantity / perSession);
+  }, [totalQuantity, perSession]);
+
+  const calculatedDates = useMemo(() => {
+    if (requiredSessions <= 0) return [];
+    const dates: string[] = [];
+    let current = parseISO(startDate);
+
+    // Safety break to prevent infinite loops
+    let iterations = 0;
+    while (dates.length < requiredSessions && iterations < 1000) {
+      const isWknd = isWeekend(current);
+      if (
+        scheduleRule === "every_day" ||
+        (scheduleRule === "weekdays" && !isWknd) ||
+        (scheduleRule === "weekends" && isWknd)
+      ) {
+        dates.push(format(current, "yyyy-MM-dd"));
+      }
+      current = addDays(current, 1);
+      iterations++;
+    }
+    return dates;
+  }, [requiredSessions, startDate, scheduleRule]);
+
+  const calculatedEndDate =
+    calculatedDates.length > 0
+      ? calculatedDates[calculatedDates.length - 1]
+      : "";
+
+  // Handlers
+  const handleGeneratePreview = useCallback(() => {
     let generated: Partial<Task>[] = [];
+
     if (breakdownMode === "manual") {
       generated = manualTasks
         .filter((t) => t.title.trim() !== "")
         .map((t) => ({
           title: t.title.trim(),
           date: t.date,
-          category: goal.category,
+          category,
           task_type: "main",
-          priority: "medium",
-          note: `Generated from goal: ${goal.title}`,
+          priority,
+          note: `Từ mục tiêu: ${goal.title}`,
         }));
     } else {
-      let datesToUse: string[] = [];
-      let current = parseISO(startDate);
-      const end = parseISO(endDate);
-      while (current <= end) {
-        const isWknd = isWeekend(current);
-        if (
-          scheduleTarget === "range_every" ||
-          (scheduleTarget === "range_weekday" && !isWknd) ||
-          (scheduleTarget === "range_weekend" && isWknd)
-        ) {
-          datesToUse.push(format(current, "yyyy-MM-dd"));
-        }
-        current = addDays(current, 1);
-      }
-
-      if (datesToUse.length === 0) {
-        alert("Không có ngày nào phù hợp với cài đặt!");
+      if (calculatedDates.length === 0) {
+        alert("Không thể tính toán ngày học. Vui lòng kiểm tra lại cấu hình!");
         return;
       }
 
-      for (let i = 1; i <= splitCount; i++) {
-        const title = splitTemplate.replace("#{number}", i.toString());
-        const dateIndex = (i - 1) % datesToUse.length;
+      let currentItem = 1;
+      for (let i = 0; i < calculatedDates.length; i++) {
+        const endItem = Math.min(currentItem + perSession - 1, totalQuantity);
+        const title = `${goal.title} - ${unit} ${currentItem}-${endItem}`;
+
         generated.push({
           title,
-          date: datesToUse[dateIndex],
-          category: goal.category,
+          date: calculatedDates[i],
+          category,
           task_type: "main",
-          priority: "medium",
-          note: `Generated from goal: ${goal.title}`,
+          priority,
+          note: `Từ mục tiêu: ${goal.title}`,
         });
+
+        currentItem = endItem + 1;
       }
     }
+
     setPreviewTasks(generated);
-    setStep(2);
-  };
+    setStep(4);
+  }, [
+    breakdownMode,
+    manualTasks,
+    calculatedDates,
+    perSession,
+    totalQuantity,
+    unit,
+    category,
+    priority,
+    goal.title,
+  ]);
 
   const handleSave = async () => {
     if (!user || previewTasks.length === 0) return;
@@ -124,15 +165,90 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
     }
   };
 
+  const nextStep = () => setStep((s) => Math.min(s + 1, 4) as any);
+  const prevStep = () => setStep((s) => Math.max(s - 1, 1) as any);
+
+  const renderStepper = () => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: "2rem",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: 0,
+          right: 0,
+          height: "2px",
+          background: "var(--border-color)",
+          zIndex: 0,
+        }}
+      />
+      {[
+        { num: 1, icon: <Settings size={18} />, label: "Thiết lập" },
+        { num: 2, icon: <Calendar size={18} />, label: "Lịch trình" },
+        { num: 3, icon: <LayoutList size={18} />, label: "Phương pháp" },
+        { num: 4, icon: <CheckCircle2 size={18} />, label: "Xác nhận" },
+      ].map((s) => (
+        <div
+          key={s.num}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.5rem",
+            zIndex: 1,
+          }}
+        >
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              background:
+                step >= s.num ? "var(--primary)" : "var(--bg-surface)",
+              color: step >= s.num ? "#fff" : "var(--text-muted)",
+              border: `2px solid ${step >= s.num ? "var(--primary)" : "var(--border-color)"}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.3s",
+            }}
+          >
+            {s.icon}
+          </div>
+          <span
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: step >= s.num ? 600 : 400,
+              color:
+                step >= s.num ? "var(--text-primary)" : "var(--text-muted)",
+            }}
+          >
+            {s.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div
       className="task-form-overlay"
       style={{
+        position: "fixed",
+        inset: 0,
         zIndex: 1000,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "1rem",
+        background: "rgba(15, 23, 42, 0.8)",
+        backdropFilter: "blur(4px)",
       }}
     >
       <div
@@ -140,21 +256,22 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
         style={{
           width: "100%",
           maxWidth: "760px",
-          maxHeight: "90vh",
+          maxHeight: "90dvh",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          background: "var(--bg-surface)",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
         }}
       >
-        {/* Header */}
         <div
           style={{
-            padding: "1.25rem",
+            padding: "1.25rem 1.5rem",
             borderBottom: "1px solid var(--border-color)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            background: "var(--bg-surface)",
           }}
         >
           <div>
@@ -173,8 +290,9 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
           </Button>
         </div>
 
-        {/* Scrollable Content */}
         <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}>
+          {renderStepper()}
+
           {step === 1 && (
             <div
               style={{
@@ -186,7 +304,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                   gap: "1rem",
                 }}
               >
@@ -199,56 +317,22 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                       fontWeight: 500,
                     }}
                   >
-                    Chế độ tách
+                    Tổng khối lượng
                   </label>
-                  <div
-                    className="segmented-control"
+                  <input
+                    type="number"
+                    min="1"
+                    value={totalQuantity}
+                    onChange={(e) => setTotalQuantity(Number(e.target.value))}
                     style={{
-                      display: "flex",
-                      border: "1px solid var(--border-color)",
+                      width: "100%",
+                      padding: "0.5rem",
                       borderRadius: "var(--radius-sm)",
-                      overflow: "hidden",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-panel)",
+                      color: "var(--text-primary)",
                     }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setBreakdownMode("manual")}
-                      style={{
-                        flex: 1,
-                        padding: "0.5rem",
-                        background:
-                          breakdownMode === "manual"
-                            ? "var(--primary-bg)"
-                            : "var(--bg-surface)",
-                        color:
-                          breakdownMode === "manual"
-                            ? "var(--primary)"
-                            : "var(--text-secondary)",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Thủ công
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBreakdownMode("split")}
-                      style={{
-                        flex: 1,
-                        padding: "0.5rem",
-                        background:
-                          breakdownMode === "split"
-                            ? "var(--primary-bg)"
-                            : "var(--bg-surface)",
-                        color:
-                          breakdownMode === "split"
-                            ? "var(--primary)"
-                            : "var(--text-secondary)",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Tự động
-                    </button>
-                  </div>
+                  />
                 </div>
                 <div>
                   <label
@@ -259,13 +343,337 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                       fontWeight: 500,
                     }}
                   >
-                    Múi giờ
+                    Đơn vị (VD: từ vựng, bài tập)
                   </label>
                   <input
                     type="text"
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-panel)",
+                      color: "var(--text-primary)",
+                    }}
                   />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Khối lượng mỗi buổi
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={perSession}
+                    onChange={(e) => setPerSession(Number(e.target.value))}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-panel)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Số buổi dự kiến
+                  </label>
+                  <div
+                    style={{
+                      padding: "0.5rem",
+                      background: "var(--bg-muted)",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      color: "var(--primary)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {requiredSessions} buổi
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Phân loại (Category)
+                  </label>
+                  <input
+                    type="text"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-panel)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Độ ưu tiên
+                  </label>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as any)}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-panel)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <option value="low">Thấp</option>
+                    <option value="medium">Trung bình</option>
+                    <option value="high">Cao</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1.5rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Ngày bắt đầu
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-panel)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Quy tắc rải lịch
+                  </label>
+                  <select
+                    value={scheduleRule}
+                    onChange={(e) => setScheduleRule(e.target.value as any)}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-color)",
+                      background: "var(--bg-panel)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <option value="every_day">Mỗi ngày</option>
+                    <option value="weekdays">
+                      Chỉ ngày trong tuần (T2-T6)
+                    </option>
+                    <option value="weekends">Chỉ cuối tuần (T7-CN)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "var(--primary-bg)",
+                  border: "1px solid var(--primary)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "1.25rem",
+                  marginTop: "1rem",
+                }}
+              >
+                <h4 style={{ margin: "0 0 1rem 0", color: "var(--primary)" }}>
+                  Dự kiến lịch trình
+                </h4>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>Số buổi cần học:</span>{" "}
+                    <strong>{requiredSessions} buổi</strong>
+                  </div>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>Khối lượng mỗi buổi:</span>{" "}
+                    <strong>
+                      {perSession} {unit}
+                    </strong>
+                  </div>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>Ngày bắt đầu:</span> <strong>{startDate}</strong>
+                  </div>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>Ngày hoàn thành dự kiến:</span>{" "}
+                    <strong style={{ color: "var(--success)" }}>
+                      {calculatedEndDate || "Không tính được"}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1.5rem",
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Chế độ tách
+                </label>
+                <div
+                  className="segmented-control"
+                  style={{
+                    display: "flex",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "var(--radius-sm)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setBreakdownMode("auto")}
+                    style={{
+                      flex: 1,
+                      padding: "0.5rem",
+                      background:
+                        breakdownMode === "auto"
+                          ? "var(--primary-bg)"
+                          : "var(--bg-surface)",
+                      color:
+                        breakdownMode === "auto"
+                          ? "var(--primary)"
+                          : "var(--text-secondary)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Tự động rải đều
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBreakdownMode("manual")}
+                    style={{
+                      flex: 1,
+                      padding: "0.5rem",
+                      background:
+                        breakdownMode === "manual"
+                          ? "var(--primary-bg)"
+                          : "var(--bg-surface)",
+                      color:
+                        breakdownMode === "manual"
+                          ? "var(--primary)"
+                          : "var(--text-secondary)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Thủ công (Tự sửa)
+                  </button>
                 </div>
               </div>
 
@@ -294,7 +702,14 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                           newTasks[index].date = e.target.value;
                           setManualTasks(newTasks);
                         }}
-                        style={{ width: "140px" }}
+                        style={{
+                          width: "130px",
+                          padding: "0.5rem",
+                          borderRadius: "var(--radius-sm)",
+                          border: "1px solid var(--border-color)",
+                          background: "var(--bg-panel)",
+                          color: "var(--text-primary)",
+                        }}
                       />
                       <input
                         type="text"
@@ -305,7 +720,14 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                           newTasks[index].title = e.target.value;
                           setManualTasks(newTasks);
                         }}
-                        style={{ flex: 1 }}
+                        style={{
+                          flex: 1,
+                          padding: "0.5rem",
+                          borderRadius: "var(--radius-sm)",
+                          border: "1px solid var(--border-color)",
+                          background: "var(--bg-panel)",
+                          color: "var(--text-primary)",
+                        }}
                       />
                       <Button
                         variant="danger"
@@ -338,111 +760,10 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                   </Button>
                 </div>
               )}
-
-              {breakdownMode === "split" && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 2fr",
-                      gap: "1rem",
-                    }}
-                  >
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          marginBottom: "0.5rem",
-                          fontSize: "0.875rem",
-                          fontWeight: 500,
-                        }}
-                      >
-                        Số lượng
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={splitCount}
-                        onChange={(e) => setSplitCount(Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          marginBottom: "0.5rem",
-                          fontSize: "0.875rem",
-                          fontWeight: 500,
-                        }}
-                      >
-                        Cú pháp tên (#&#123;number&#125;)
-                      </label>
-                      <input
-                        type="text"
-                        value={splitTemplate}
-                        onChange={(e) => setSplitTemplate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        fontSize: "0.875rem",
-                        fontWeight: 500,
-                      }}
-                    >
-                      Quy tắc rải lịch
-                    </label>
-                    <select
-                      value={scheduleTarget}
-                      onChange={(e) => setScheduleTarget(e.target.value as any)}
-                      style={{ marginBottom: "0.5rem" }}
-                    >
-                      <option value="range_every">Mỗi ngày trong khoảng</option>
-                      <option value="range_weekday">
-                        Chỉ ngày trong tuần (T2-T6)
-                      </option>
-                      <option value="range_weekend">
-                        Chỉ cuối tuần (T7-CN)
-                      </option>
-                    </select>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "0.5rem",
-                        alignItems: "center",
-                      }}
-                    >
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        style={{ flex: 1 }}
-                      />
-                      <ArrowRight size={16} className="text-muted" />
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        style={{ flex: 1 }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {step === 2 && (
+          {step === 4 && (
             <div
               style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
             >
@@ -496,10 +817,9 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
           )}
         </div>
 
-        {/* Sticky Footer */}
         <div
           style={{
-            padding: "1.25rem",
+            padding: "1.25rem 1.5rem",
             borderTop: "1px solid var(--border-color)",
             display: "flex",
             justifyContent: "space-between",
@@ -507,35 +827,43 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
           }}
         >
           {step === 1 ? (
-            <>
-              <Button variant="ghost" onClick={onClose}>
-                Hủy
-              </Button>
-              <Button
-                variant="primary"
-                onClick={generatePreview}
-                style={{ gap: "0.5rem" }}
-              >
-                Tiếp tục <ArrowRight size={16} />
-              </Button>
-            </>
+            <Button variant="ghost" onClick={onClose}>
+              Hủy
+            </Button>
           ) : (
-            <>
-              <Button
-                variant="ghost"
-                onClick={() => setStep(1)}
-                style={{ gap: "0.5rem" }}
-              >
-                <ArrowLeft size={16} /> Quay lại
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSave}
-                disabled={isGenerating}
-              >
-                {isGenerating ? "Đang xử lý..." : "Xác nhận tạo task"}
-              </Button>
-            </>
+            <Button
+              variant="ghost"
+              onClick={prevStep}
+              style={{ gap: "0.5rem" }}
+            >
+              <ArrowLeft size={16} /> Quay lại
+            </Button>
+          )}
+
+          {step < 3 ? (
+            <Button
+              variant="primary"
+              onClick={nextStep}
+              style={{ gap: "0.5rem" }}
+            >
+              Tiếp tục <ArrowRight size={16} />
+            </Button>
+          ) : step === 3 ? (
+            <Button
+              variant="primary"
+              onClick={handleGeneratePreview}
+              style={{ gap: "0.5rem" }}
+            >
+              Xem trước <ArrowRight size={16} />
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={isGenerating}
+            >
+              {isGenerating ? "Đang xử lý..." : "Xác nhận tạo task"}
+            </Button>
           )}
         </div>
       </div>
