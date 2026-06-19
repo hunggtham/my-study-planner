@@ -3,6 +3,8 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
+import { ExcelImportWizard } from "../components/ExcelImportWizard";
+import { format } from "date-fns";
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -13,6 +15,7 @@ export const Settings: React.FC = () => {
   const [dbCheckResult, setDbCheckResult] = useState<any>(null);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showExcelImport, setShowExcelImport] = useState(false);
   const [autoLogin, setAutoLogin] = useState(() => {
     return localStorage.getItem("study-planner-auto-login") !== "false";
   });
@@ -221,15 +224,16 @@ export const Settings: React.FC = () => {
 
       const exportData = data.map((t) => ({
         Ngày: t.date,
-        "Bắt đầu": t.start_time,
-        "Kết thúc": t.end_time,
-        "Tiêu đề": t.title,
-        "Danh mục": t.category,
-        "Trạng thái": t.status,
-        "Độ ưu tiên": t.priority,
+        Thứ: format(new Date(t.date), "EEEE"),
+        "Khung giờ": `${t.start_time || ""} - ${t.end_time || ""}`,
+        Nhóm: t.category,
+        "Task chính": t.title,
+        "Ghi chú/Rule": t.description,
+        "Output tối thiểu": t.note,
+        "Ưu tiên": t.priority,
+        Status: t.status,
+        Điểm: t.score_weight,
         Loại: t.task_type,
-        "Chi tiết": t.description,
-        "Ghi chú": t.note,
       }));
 
       const ws = utils.json_to_sheet(exportData);
@@ -472,34 +476,52 @@ export const Settings: React.FC = () => {
             style={{
               marginTop: "1rem",
               display: "flex",
-              flexWrap: "wrap",
+              flexDirection: "column",
               gap: "1rem",
             }}
           >
-            <button
-              className="primary-btn"
-              style={{ width: "auto", margin: 0 }}
-              onClick={exportToExcel}
-              disabled={loading}
-            >
-              {loading ? "Đang tải..." : "Xuất dữ liệu (.xlsx)"}
-            </button>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+              <button
+                className="primary-btn"
+                style={{ width: "auto", margin: 0 }}
+                onClick={exportToExcel}
+                disabled={loading}
+              >
+                {loading ? "Đang tải..." : "Xuất dữ liệu (.xlsx)"}
+              </button>
 
-            <input
-              type="file"
-              accept=".xlsx"
-              ref={fileInputRef}
-              style={{ display: "none" }}
-              onChange={handleFileChange}
-            />
-            <button
-              className="secondary-btn"
-              style={{ width: "auto", margin: 0 }}
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading}
+              <input
+                type="file"
+                accept=".xlsx"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <button
+                className="secondary-btn"
+                style={{ width: "auto", margin: 0 }}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+              >
+                Nhập dữ liệu (Cơ bản)
+              </button>
+            </div>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <Button
+                variant="secondary"
+                onClick={() => setShowExcelImport(true)}
+                style={{ flex: 1 }}
+              >
+                Import từ Excel (Nâng cao)
+              </Button>
+            </div>
+            <p
+              className="text-muted"
+              style={{ fontSize: "0.875rem", margin: 0 }}
             >
-              Nhập dữ liệu (.xlsx)
-            </button>
+              * Lưu ý: Import Excel nâng cao hỗ trợ map cột tuỳ biến, tự động
+              lọc trùng và thêm mới thay vì ghi đè.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -622,98 +644,112 @@ export const Settings: React.FC = () => {
               flexDirection: "column",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "1rem",
-              }}
-            >
-              <h3 style={{ margin: 0 }}>Xác nhận Nhập Dữ Liệu</h3>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={() => setImportPreview(null)}
-                style={{ width: "auto" }}
-              >
-                Đóng
-              </Button>
-            </div>
-
-            <p style={{ marginBottom: "1rem" }}>
-              Tìm thấy <strong>{importPreview.length}</strong> dòng hợp lệ. Dưới
-              đây là 3 dòng đầu tiên:
-            </p>
-
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                background: "var(--bg-dark)",
-                borderRadius: "4px",
-                border: "1px solid var(--border-color)",
-                padding: "0.5rem",
-              }}
-            >
-              <table
+            <CardContent>
+              <div
                 style={{
-                  width: "100%",
-                  fontSize: "0.875rem",
-                  borderCollapse: "collapse",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "1rem",
                 }}
               >
-                <thead>
-                  <tr
-                    style={{
-                      borderBottom: "1px solid var(--border-color)",
-                      textAlign: "left",
-                    }}
-                  >
-                    <th style={{ padding: "0.5rem" }}>Ngày</th>
-                    <th style={{ padding: "0.5rem" }}>Tiêu đề</th>
-                    <th style={{ padding: "0.5rem" }}>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importPreview.slice(0, 3).map((row, i) => (
-                    <tr
-                      key={i}
-                      style={{ borderBottom: "1px solid var(--border-color)" }}
-                    >
-                      <td style={{ padding: "0.5rem" }}>
-                        {row["Ngày"] || "-"}
-                      </td>
-                      <td style={{ padding: "0.5rem" }}>
-                        {row["Tiêu đề"] || "-"}
-                      </td>
-                      <td style={{ padding: "0.5rem" }}>
-                        {row["Trạng thái"] || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                <h3 style={{ margin: 0 }}>Xác nhận Nhập Dữ Liệu</h3>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => setImportPreview(null)}
+                  style={{ width: "auto" }}
+                >
+                  Đóng
+                </Button>
+              </div>
 
-            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-              <Button
-                variant="secondary"
-                onClick={() => setImportPreview(null)}
-                disabled={loading}
+              <p style={{ marginBottom: "1rem" }}>
+                Tìm thấy <strong>{importPreview.length}</strong> dòng hợp lệ.
+                Dưới đây là 3 dòng đầu tiên:
+              </p>
+
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  background: "var(--bg-dark)",
+                  borderRadius: "4px",
+                  border: "1px solid var(--border-color)",
+                  padding: "0.5rem",
+                }}
               >
-                Hủy
-              </Button>
-              <Button
-                variant="primary"
-                onClick={confirmImport}
-                disabled={loading}
-              >
-                {loading ? "Đang xử lý..." : "Xác nhận Nhập"}
-              </Button>
-            </div>
+                <table
+                  style={{
+                    width: "100%",
+                    fontSize: "0.875rem",
+                    borderCollapse: "collapse",
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        borderBottom: "1px solid var(--border-color)",
+                        textAlign: "left",
+                      }}
+                    >
+                      <th style={{ padding: "0.5rem" }}>Ngày</th>
+                      <th style={{ padding: "0.5rem" }}>Tiêu đề</th>
+                      <th style={{ padding: "0.5rem" }}>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importPreview.slice(0, 3).map((row, i) => (
+                      <tr
+                        key={i}
+                        style={{
+                          borderBottom: "1px solid var(--border-color)",
+                        }}
+                      >
+                        <td style={{ padding: "0.5rem" }}>
+                          {row["Ngày"] || "-"}
+                        </td>
+                        <td style={{ padding: "0.5rem" }}>
+                          {row["Tiêu đề"] || "-"}
+                        </td>
+                        <td style={{ padding: "0.5rem" }}>
+                          {row["Trạng thái"] || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setImportPreview(null)}
+                  disabled={loading}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={confirmImport}
+                  disabled={loading}
+                >
+                  {loading ? "Đang xử lý..." : "Xác nhận Nhập"}
+                </Button>
+              </div>
+            </CardContent>
           </Card>
         </div>
+      )}
+
+      {showExcelImport && (
+        <ExcelImportWizard
+          onClose={() => setShowExcelImport(false)}
+          onSuccess={() => {
+            setShowExcelImport(false);
+            checkDb();
+          }}
+        />
       )}
     </div>
   );
