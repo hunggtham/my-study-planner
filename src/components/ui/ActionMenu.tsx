@@ -75,9 +75,9 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
       const rect = triggerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      const menuHeight = items.length * 40 + 20;
+      const menuHeight = items.length * 42 + 20;
 
-      let top = rect.bottom + window.scrollY;
+      let top = rect.bottom + window.scrollY + 4; // Add a small gap to avoid awkward overlap
       let left = rect.right - menuWidth + window.scrollX;
 
       if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
@@ -120,11 +120,13 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               width: menuWidth,
               background: "var(--bg-panel)",
               border: "1px solid var(--border-color)",
-              borderRadius: "var(--radius-sm)",
+              borderRadius: "var(--radius-md)",
               boxShadow: "var(--shadow-lg)",
               zIndex: 9999,
               display: "flex",
               flexDirection: "column",
+              padding: "0.5rem 0",
+              minWidth: "180px",
             }
       }
       onMouseDown={(e) => e.stopPropagation()}
@@ -172,7 +174,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               cursor: "pointer",
               fontSize: isMobile ? "1rem" : "0.875rem",
               color: item.danger ? "var(--danger)" : "var(--text-main)",
-              borderRadius: "var(--radius-sm)",
+              borderRadius: "0",
+              transition: "background 0.2s",
             }}
             onClick={(e) => {
               e.stopPropagation();
