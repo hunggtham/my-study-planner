@@ -36,7 +36,7 @@ export interface Task {
 export interface Goal {
   id: string;
   user_id?: string;
-  period_type: "week" | "month";
+  period_type: "week" | "month" | "year";
   period_start_date: string;
   title: string;
   category: string;

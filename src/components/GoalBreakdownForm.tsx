@@ -12,6 +12,7 @@ import {
   LayoutList,
   Settings,
   CheckCircle2,
+  X,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import "../styles-taskform.css"; // Ensure standard modal styles are applied
@@ -174,7 +175,8 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
       <div
         className="task-form-container"
         style={{
-          maxWidth: "760px",
+          width: "100%",
+          maxWidth: "700px",
           maxHeight: "90dvh",
           display: "flex",
           flexDirection: "column",
@@ -182,26 +184,39 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
       >
         {/* Header */}
         <div className="task-form-header">
-          <div>
-            <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700 }}>
               Tách mục tiêu
             </h2>
             <p
               className="text-muted"
-              style={{ margin: 0, fontSize: "0.875rem", marginTop: "0.25rem" }}
+              style={{
+                margin: "0.2rem 0 0",
+                fontSize: "0.82rem",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+              title={goal.title}
             >
               {goal.title}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            X
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            aria-label="Đóng"
+            style={{ flexShrink: 0 }}
+          >
+            <X size={18} />
           </Button>
         </div>
 
         {/* Scrollable Body */}
         <div
           className="task-form-body"
-          style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}
+          style={{ flex: 1, overflowY: "auto", padding: "1.5rem 2rem" }}
         >
           {/* Stepper */}
           <div

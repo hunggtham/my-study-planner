@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { format, startOfWeek, startOfMonth } from "date-fns";
+import { format, startOfWeek, startOfMonth, startOfYear } from "date-fns";
 import { GoalsPanel } from "../components/GoalsPanel";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
@@ -8,7 +8,7 @@ import { Card } from "../components/ui/Card";
 
 export const Goals: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"week" | "month">("week");
+  const [activeTab, setActiveTab] = useState<"week" | "month" | "year">("week");
   const [allGoals, setAllGoals] = useState<Goal[]>([]);
 
   const weekStart = format(
@@ -16,6 +16,7 @@ export const Goals: React.FC = () => {
     "yyyy-MM-dd",
   );
   const monthStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
+  const yearStart = format(startOfYear(new Date()), "yyyy-MM-dd");
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -39,11 +40,15 @@ export const Goals: React.FC = () => {
   const monthlyGoals = allGoals.filter(
     (g) => g.period_type === "month" && g.period_start_date === monthStart,
   );
+  const yearlyGoals = allGoals.filter(
+    (g) => g.period_type === "year" && g.period_start_date === yearStart,
+  );
 
   const completedWeekly = weeklyGoals.filter((g) => g.status === "done").length;
   const completedMonthly = monthlyGoals.filter(
     (g) => g.status === "done",
   ).length;
+  const completedYearly = yearlyGoals.filter((g) => g.status === "done").length;
   const totalPending = allGoals.filter((g) => g.status !== "done").length;
 
   return (
@@ -58,32 +63,39 @@ export const Goals: React.FC = () => {
       >
         <div>
           <h1>Mục tiêu</h1>
-          <p className="text-muted">Quản lý mục tiêu theo Tuần và Tháng</p>
+          <p className="text-muted">Quản lý mục tiêu theo Tuần, Tháng và Năm</p>
         </div>
 
+        {/* Stats row */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: "1rem",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: "0.75rem",
           }}
         >
           <Card
             style={{
-              padding: "1rem",
+              padding: "0.875rem 1rem",
               display: "flex",
               flexDirection: "column",
               gap: "0.25rem",
+              cursor: "pointer",
+              outline:
+                activeTab === "week" ? "2px solid var(--primary)" : "none",
+              outlineOffset: "2px",
+              transition: "outline 0.15s",
             }}
+            onClick={() => setActiveTab("week")}
           >
             <span
-              style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}
+              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
             >
               Tuần này
             </span>
             <div
               style={{
-                fontSize: "1.5rem",
+                fontSize: "1.4rem",
                 fontWeight: 700,
                 color: "var(--text-primary)",
               }}
@@ -93,20 +105,26 @@ export const Goals: React.FC = () => {
           </Card>
           <Card
             style={{
-              padding: "1rem",
+              padding: "0.875rem 1rem",
               display: "flex",
               flexDirection: "column",
               gap: "0.25rem",
+              cursor: "pointer",
+              outline:
+                activeTab === "month" ? "2px solid var(--primary)" : "none",
+              outlineOffset: "2px",
+              transition: "outline 0.15s",
             }}
+            onClick={() => setActiveTab("month")}
           >
             <span
-              style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}
+              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
             >
               Tháng này
             </span>
             <div
               style={{
-                fontSize: "1.5rem",
+                fontSize: "1.4rem",
                 fontWeight: 700,
                 color: "var(--text-primary)",
               }}
@@ -116,20 +134,49 @@ export const Goals: React.FC = () => {
           </Card>
           <Card
             style={{
-              padding: "1rem",
+              padding: "0.875rem 1rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.25rem",
+              cursor: "pointer",
+              outline:
+                activeTab === "year" ? "2px solid var(--primary)" : "none",
+              outlineOffset: "2px",
+              transition: "outline 0.15s",
+            }}
+            onClick={() => setActiveTab("year")}
+          >
+            <span
+              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
+            >
+              Năm nay
+            </span>
+            <div
+              style={{
+                fontSize: "1.4rem",
+                fontWeight: 700,
+                color: "var(--text-primary)",
+              }}
+            >
+              {completedYearly} / {yearlyGoals.length}
+            </div>
+          </Card>
+          <Card
+            style={{
+              padding: "0.875rem 1rem",
               display: "flex",
               flexDirection: "column",
               gap: "0.25rem",
             }}
           >
             <span
-              style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}
+              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
             >
               Chưa hoàn thành
             </span>
             <div
               style={{
-                fontSize: "1.5rem",
+                fontSize: "1.4rem",
                 fontWeight: 700,
                 color: "var(--warning)",
               }}
@@ -139,7 +186,8 @@ export const Goals: React.FC = () => {
           </Card>
         </div>
 
-        <div className="segmented-control" style={{ maxWidth: "300px" }}>
+        {/* Tabs */}
+        <div className="segmented-control" style={{ maxWidth: "380px" }}>
           <button
             className={`segmented-btn ${activeTab === "week" ? "active" : ""}`}
             onClick={() => setActiveTab("week")}
@@ -152,13 +200,22 @@ export const Goals: React.FC = () => {
           >
             Tháng này
           </button>
+          <button
+            className={`segmented-btn ${activeTab === "year" ? "active" : ""}`}
+            onClick={() => setActiveTab("year")}
+          >
+            Năm nay
+          </button>
         </div>
       </header>
+
       <div style={{ paddingTop: "1rem" }}>
         {activeTab === "week" ? (
           <GoalsPanel periodType="week" periodStartDate={weekStart} />
-        ) : (
+        ) : activeTab === "month" ? (
           <GoalsPanel periodType="month" periodStartDate={monthStart} />
+        ) : (
+          <GoalsPanel periodType="year" periodStartDate={yearStart} />
         )}
       </div>
     </div>

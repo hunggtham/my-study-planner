@@ -8,7 +8,7 @@ import { Button } from "./ui/Button";
 import { Card, CardContent } from "./ui/Card";
 
 interface GoalsPanelProps {
-  periodType: "week" | "month";
+  periodType: "week" | "month" | "year";
   periodStartDate: string;
   onClose?: () => void;
   isModal?: boolean;
@@ -114,6 +114,17 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
   const completedCount = goals.filter((g) => g.is_done).length;
   const progress = goals.length ? (completedCount / goals.length) * 100 : 0;
 
+  const periodLabel =
+    periodType === "week" ? "Tuần" : periodType === "month" ? "Tháng" : "Năm";
+  const periodLabelLower =
+    periodType === "week" ? "tuần" : periodType === "month" ? "tháng" : "năm";
+  const inputPlaceholder =
+    periodType === "year"
+      ? "Thêm mục tiêu năm..."
+      : periodType === "month"
+        ? "Thêm mục tiêu tháng..."
+        : "Thêm mục tiêu tuần...";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {isModal && (
@@ -125,8 +136,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
           }}
         >
           <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>
-            Mục tiêu {periodType === "week" ? "Tuần" : "Tháng"} (
-            {periodStartDate})
+            Mục tiêu {periodLabel} ({periodStartDate})
           </h3>
           {onClose && (
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -176,6 +186,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                     width: `${progress}%`,
                     height: "100%",
                     background: "var(--success)",
+                    transition: "width 0.3s ease",
                   }}
                 />
               </div>
@@ -183,7 +194,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
           )}
 
           <div
-            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
           >
             {goals.length === 0 ? (
               <Card>
@@ -199,8 +210,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                   }}
                 >
                   <p style={{ margin: 0 }}>
-                    Chưa có mục tiêu nào cho{" "}
-                    {periodType === "week" ? "tuần" : "tháng"} này.
+                    Chưa có mục tiêu nào cho {periodLabelLower} này.
                   </p>
                 </CardContent>
               </Card>
@@ -209,16 +219,16 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                 <Card
                   key={goal.id}
                   style={{
-                    opacity: goal.is_done ? 0.6 : 1,
+                    opacity: goal.is_done ? 0.7 : 1,
                     transition: "opacity 0.2s",
                   }}
                 >
                   <CardContent
                     style={{
-                      padding: "1rem",
+                      padding: "0.875rem 1rem",
                       display: "flex",
-                      alignItems: "center",
-                      gap: "1rem",
+                      alignItems: "flex-start",
+                      gap: "0.75rem",
                     }}
                   >
                     <input
@@ -226,10 +236,10 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                       checked={goal.is_done}
                       onChange={(e) => toggleGoal(goal.id, e.target.checked)}
                       style={{
-                        width: "1.25rem",
-                        height: "1.25rem",
+                        width: "1.125rem",
+                        height: "1.125rem",
                         cursor: "pointer",
-                        margin: 0,
+                        margin: "0.2rem 0 0 0",
                         flexShrink: 0,
                       }}
                     />
@@ -238,37 +248,77 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                         flex: 1,
                         display: "flex",
                         flexDirection: "column",
-                        gap: "0.25rem",
+                        gap: "0.35rem",
                         minWidth: 0,
                       }}
                     >
                       <span
+                        className="goal-card-title"
+                        title={goal.title}
                         style={{
                           fontWeight: 600,
                           color: "var(--text-primary)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
                           textDecoration: goal.is_done
                             ? "line-through"
                             : "none",
+                          opacity: goal.is_done ? 0.7 : 1,
                         }}
                       >
                         {goal.title}
                       </span>
-                      {goal.category && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "0.4rem",
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        {goal.category && (
+                          <span
+                            style={{
+                              fontSize: "0.72rem",
+                              color: "var(--text-secondary)",
+                              background: "var(--bg-muted)",
+                              padding: "0.1rem 0.45rem",
+                              borderRadius: "var(--radius-sm)",
+                              border: "1px solid var(--border-color)",
+                            }}
+                          >
+                            {goal.category}
+                          </span>
+                        )}
                         <span
                           style={{
-                            fontSize: "0.75rem",
-                            color: "var(--text-secondary)",
+                            fontSize: "0.72rem",
+                            color: "var(--primary)",
+                            background: "var(--primary-bg)",
+                            padding: "0.1rem 0.45rem",
+                            borderRadius: "var(--radius-sm)",
+                            border: "1px solid var(--primary-border)",
                           }}
                         >
-                          {goal.category}
+                          {periodLabel}
                         </span>
-                      )}
+                        {goal.is_done && (
+                          <span
+                            style={{
+                              fontSize: "0.72rem",
+                              color: "var(--success)",
+                            }}
+                          >
+                            ✓ Hoàn thành
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div
-                      style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}
+                      style={{
+                        display: "flex",
+                        gap: "0.4rem",
+                        flexShrink: 0,
+                        alignSelf: "flex-start",
+                      }}
                     >
                       <Button
                         variant="secondary"
@@ -276,7 +326,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                         onClick={() => setBreakdownGoal(goal)}
                         title="Tách nhỏ mục tiêu"
                       >
-                        <GitMerge size={16} />
+                        <GitMerge size={15} />
                       </Button>
                       <Button
                         variant="danger"
@@ -284,7 +334,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                         onClick={() => deleteGoal(goal.id)}
                         title="Xóa"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </Button>
                     </div>
                   </CardContent>
@@ -293,14 +343,18 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
             )}
           </div>
 
-          <form onSubmit={addGoal} style={{ display: "flex", gap: "0.5rem" }}>
+          <form
+            onSubmit={addGoal}
+            style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+          >
             <input
               type="text"
-              placeholder="Thêm mục tiêu mới..."
+              placeholder={inputPlaceholder}
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               style={{
                 flex: 1,
+                minWidth: "200px",
                 padding: "0.75rem 1rem",
                 borderRadius: "var(--radius-sm)",
                 border: "1px solid var(--border-color)",
