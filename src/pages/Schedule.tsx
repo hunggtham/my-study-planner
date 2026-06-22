@@ -326,6 +326,13 @@ export const Schedule: React.FC = () => {
     {} as Record<string, Task[]>,
   );
 
+  const visibleIds = [
+    ...tasks.map((t) => t.id),
+    ...overdueTasks.map((t) => t.id),
+  ];
+  const allVisibleSelected =
+    selectedIds.size === visibleIds.length && visibleIds.length > 0;
+
   return (
     <div className="page-container" style={{ padding: "1rem" }}>
       <ScheduleHeader
@@ -346,11 +353,44 @@ export const Schedule: React.FC = () => {
         style={{
           display: "flex",
           justifyContent: "flex-end",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "0.5rem",
           marginBottom: "1rem",
         }}
       >
+        {isSelectionMode && (
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={toggleSelectAllVisible}
+            >
+              {allVisibleSelected ? (
+                <>
+                  <CheckSquare size={14} style={{ marginRight: "0.25rem" }} />{" "}
+                  Bỏ chọn tất cả
+                </>
+              ) : (
+                <>
+                  <Square size={14} style={{ marginRight: "0.25rem" }} /> Chọn
+                  tất cả
+                </>
+              )}
+            </Button>
+            {selectedIds.size > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Bỏ chọn
+              </Button>
+            )}
+          </>
+        )}
         <Button
-          variant={isSelectionMode ? "primary" : "secondary"}
+          variant={isSelectionMode ? "secondary" : "primary"}
           size="sm"
           onClick={() => {
             setIsSelectionMode(!isSelectionMode);
@@ -391,25 +431,6 @@ export const Schedule: React.FC = () => {
             <span style={{ fontWeight: 600, color: "var(--primary)" }}>
               Đã chọn {selectedIds.size} task
             </span>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={toggleSelectAllVisible}
-              >
-                <CheckSquare size={14} style={{ marginRight: "0.25rem" }} />
-                Chọn tất cả đang hiển thị
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSelectedIds(new Set())}
-                disabled={selectedIds.size === 0}
-              >
-                <Square size={14} style={{ marginRight: "0.25rem" }} />
-                Bỏ chọn
-              </Button>
-            </div>
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>

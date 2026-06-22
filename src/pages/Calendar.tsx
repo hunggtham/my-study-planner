@@ -18,7 +18,21 @@ import { vi } from "date-fns/locale";
 import { TaskDisplay } from "../components/tasks/TaskDisplay";
 import { TaskForm } from "../components/TaskForm";
 import { GoalsPanel } from "../components/GoalsPanel";
-import { FolderOpen, ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import {
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  X,
+  CheckSquare,
+  Square,
+  Trash2,
+  CalendarDays,
+  CalendarPlus,
+  Play,
+  RotateCcw,
+  SkipForward,
+} from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,6 +93,11 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
     month: "",
     keyword: "",
   });
+
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [targetDateForMove, setTargetDateForMove] = useState("");
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
   const fetchYearTasks = async () => {
     if (!user) return;
@@ -191,6 +210,103 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
     });
   };
 
+  const expandAllMonths = () => {
+    const monthsWithTasks = Object.keys(tasksByMonth)
+      .map(Number)
+      .filter((m) => tasksByMonth[m].length > 0);
+    setExpandedMonths(new Set(monthsWithTasks));
+    setExpandedAllInMonth(new Set(monthsWithTasks));
+  };
+
+  const collapseAllMonths = () => {
+    setExpandedMonths(new Set());
+    setExpandedAllInMonth(new Set());
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    const visibleIds = filteredTasks.map((t) => t.id);
+    if (selectedIds.size === visibleIds.length && visibleIds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleIds));
+    }
+  };
+
+  const toggleSelectMonth = (m: number) => {
+    const monthIds = tasksByMonth[m].map((t) => t.id);
+    const allSelected = monthIds.every((id) => selectedIds.has(id));
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        monthIds.forEach((id) => next.delete(id));
+      } else {
+        monthIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkAction = async (action: string, payload?: any) => {
+    if (!user || selectedIds.size === 0) return;
+
+    if (action === "delete") {
+      if (
+        !window.confirm(
+          `Bạn chắc chắn muốn xóa ${selectedIds.size} task đã chọn?`,
+        )
+      ) {
+        return;
+      }
+    }
+
+    setIsProcessingBulk(true);
+    const ids = Array.from(selectedIds);
+
+    try {
+      let query;
+      if (action === "delete") {
+        query = supabase
+          .from("tasks")
+          .delete()
+          .in("id", ids)
+          .eq("user_id", user.id);
+      } else if (action === "move") {
+        query = supabase
+          .from("tasks")
+          .update({ date: payload, status: "moved" })
+          .in("id", ids)
+          .eq("user_id", user.id);
+      } else {
+        query = supabase
+          .from("tasks")
+          .update({ status: action })
+          .in("id", ids)
+          .eq("user_id", user.id);
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+
+      setSelectedIds(new Set());
+      if (action === "delete") setIsSelectionMode(false);
+      fetchYearTasks();
+    } catch (err: any) {
+      alert("Lỗi bulk action: " + err.message);
+    } finally {
+      setIsProcessingBulk(false);
+    }
+  };
+
   const updateTask = async (id: string, patch: Partial<Task>) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     await supabase.from("tasks").update(patch).eq("id", id);
@@ -281,6 +397,30 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
             Năm hiện tại
           </button>
         )}
+        <div style={{ flex: 1 }} />
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button
+            className="ui-btn ui-btn-secondary ui-btn-sm"
+            onClick={expandAllMonths}
+          >
+            Mở rộng tất cả
+          </button>
+          <button
+            className="ui-btn ui-btn-secondary ui-btn-sm"
+            onClick={collapseAllMonths}
+          >
+            Thu gọn tất cả
+          </button>
+          <button
+            className={`ui-btn ui-btn-sm ${isSelectionMode ? "ui-btn-secondary" : "ui-btn-primary"}`}
+            onClick={() => {
+              setIsSelectionMode(!isSelectionMode);
+              if (isSelectionMode) setSelectedIds(new Set());
+            }}
+          >
+            {isSelectionMode ? "Thoát chọn nhiều" : "Chọn nhiều"}
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -448,6 +588,168 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
         </div>
       </div>
 
+      {isSelectionMode && (
+        <div
+          className="bulk-action-toolbar"
+          style={{
+            position: "sticky",
+            top: "1rem",
+            zIndex: 30,
+            background: "var(--bg-panel)",
+            border: "1px solid var(--primary)",
+            borderRadius: "var(--radius-md)",
+            padding: "1rem",
+            boxShadow: "var(--shadow-lg)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+            opacity: isProcessingBulk ? 0.5 : 1,
+            pointerEvents: isProcessingBulk ? "none" : "auto",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+            }}
+          >
+            <span style={{ fontWeight: 600, color: "var(--primary)" }}>
+              Đã chọn {selectedIds.size} task
+            </span>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                className="ui-btn ui-btn-secondary ui-btn-sm"
+                onClick={toggleSelectAllVisible}
+              >
+                {selectedIds.size === filteredTasks.length &&
+                filteredTasks.length > 0 ? (
+                  <>
+                    <CheckSquare size={14} style={{ marginRight: "0.25rem" }} />{" "}
+                    Bỏ chọn tất cả
+                  </>
+                ) : (
+                  <>
+                    <Square size={14} style={{ marginRight: "0.25rem" }} /> Chọn
+                    tất cả đang hiển thị
+                  </>
+                )}
+              </button>
+              {selectedIds.size > 0 && (
+                <button
+                  className="ui-btn ui-btn-secondary ui-btn-sm"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  Bỏ chọn
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <button
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("done")}
+            >
+              <CheckSquare size={14} style={{ marginRight: "0.25rem" }} /> Hoàn
+              thành
+            </button>
+            <button
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("in_progress")}
+            >
+              <Play size={14} style={{ marginRight: "0.25rem" }} /> Đang làm
+            </button>
+            <button
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("todo")}
+            >
+              <RotateCcw size={14} style={{ marginRight: "0.25rem" }} /> Chưa
+              làm
+            </button>
+            <button
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("skipped")}
+            >
+              <SkipForward size={14} style={{ marginRight: "0.25rem" }} /> Bỏ
+              qua
+            </button>
+            <div
+              style={{
+                width: "1px",
+                background: "var(--border-color)",
+                margin: "0 0.25rem",
+              }}
+            />
+            <button
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={() =>
+                handleBulkAction("move", format(new Date(), "yyyy-MM-dd"))
+              }
+            >
+              <CalendarDays size={14} style={{ marginRight: "0.25rem" }} /> Dời
+              hôm nay
+            </button>
+            <button
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={() =>
+                handleBulkAction(
+                  "move",
+                  format(new Date(Date.now() + 86400000), "yyyy-MM-dd"),
+                )
+              }
+            >
+              <CalendarPlus size={14} style={{ marginRight: "0.25rem" }} /> Dời
+              ngày mai
+            </button>
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
+            >
+              <input
+                type="date"
+                value={targetDateForMove}
+                onChange={(e) => setTargetDateForMove(e.target.value)}
+                style={{
+                  ...selectEl,
+                  padding: "0.25rem 0.5rem",
+                  height: "32px",
+                }}
+              />
+              <button
+                className="ui-btn ui-btn-secondary ui-btn-sm"
+                disabled={selectedIds.size === 0 || !targetDateForMove}
+                onClick={() => handleBulkAction("move", targetDateForMove)}
+              >
+                Dời ngày khác
+              </button>
+            </div>
+            <div
+              style={{
+                width: "1px",
+                background: "var(--border-color)",
+                margin: "0 0.25rem",
+              }}
+            />
+            <button
+              className="ui-btn ui-btn-danger ui-btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("delete")}
+            >
+              <Trash2 size={14} style={{ marginRight: "0.25rem" }} /> Xóa task
+              đã chọn
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       {loading ? (
         <div
@@ -530,6 +832,24 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
                     <span className="year-month-name">{MONTH_NAMES_VI[m]}</span>
                   </div>
                   <div className="year-month-meta">
+                    {isSelectionMode && (
+                      <button
+                        className="ui-btn ui-btn-secondary ui-btn-sm"
+                        style={{
+                          padding: "0.2rem 0.5rem",
+                          fontSize: "0.75rem",
+                          marginRight: "0.5rem",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelectMonth(m);
+                        }}
+                      >
+                        {monthTasks.every((t) => selectedIds.has(t.id))
+                          ? "Bỏ chọn tháng này"
+                          : "Chọn tháng này"}
+                      </button>
+                    )}
                     <span className="year-month-count">
                       {done}/{monthTasks.length} task
                     </span>
@@ -563,6 +883,9 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
                             title: rest.title + " (Copy)",
                           });
                         }}
+                        selectionMode={isSelectionMode}
+                        isSelected={selectedIds.has(task.id)}
+                        onToggleSelect={toggleSelect}
                       />
                     ))}
                     {hasMore && !showAll && (
