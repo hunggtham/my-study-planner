@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { Goal } from "../types";
-import { Trash2, GitMerge, Plus } from "lucide-react";
+import { Trash2, GitMerge, Plus, AlertCircle } from "lucide-react";
 import { GoalBreakdownForm } from "./GoalBreakdownForm";
 import { Button } from "./ui/Button";
 import { Card, CardContent } from "./ui/Card";
@@ -23,21 +23,40 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [breakdownGoal, setBreakdownGoal] = useState<Goal | null>(null);
 
   const fetchGoals = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
+    setFetchError(null);
+
+    let query = supabase
       .from("goals")
       .select("*")
       .eq("user_id", user.id)
-      .eq("period_type", periodType)
-      .eq("period_start_date", periodStartDate)
       .order("created_at", { ascending: true });
 
-    if (data) {
+    if (periodType === "year") {
+      // For yearly goals: use range query to catch any date within that year.
+      // This handles manual inserts where period_start_date is not exactly YYYY-01-01.
+      const year = periodStartDate.slice(0, 4);
+      query = query
+        .eq("period_type", "year")
+        .gte("period_start_date", `${year}-01-01`)
+        .lte("period_start_date", `${year}-12-31`);
+    } else {
+      query = query
+        .eq("period_type", periodType)
+        .eq("period_start_date", periodStartDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      setFetchError(error.message);
+    } else if (data) {
       const mappedGoals = data.map((g) => ({
         ...g,
         is_done: g.status === "done",
@@ -88,6 +107,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
     const newGoal = {
       user_id: user.id,
       period_type: periodType,
+      // Always store year goals with YYYY-01-01 for consistency
       period_start_date: periodStartDate,
       title: newTitle.trim(),
       category: "General",
@@ -156,6 +176,42 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
         >
           Đang tải...
         </div>
+      ) : fetchError ? (
+        <Card>
+          <CardContent
+            style={{
+              padding: "1.5rem",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.75rem",
+              color: "var(--danger)",
+            }}
+          >
+            <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                Không thể tải mục tiêu
+              </p>
+              <p
+                style={{
+                  margin: "0.25rem 0 0",
+                  fontSize: "0.85rem",
+                  opacity: 0.8,
+                }}
+              >
+                {fetchError}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={fetchGoals}
+                style={{ marginTop: "0.75rem" }}
+              >
+                Thử lại
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {goals.length > 0 && (
@@ -210,7 +266,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                   }}
                 >
                   <p style={{ margin: 0 }}>
-                    Chưa có mục tiêu nào cho {periodLabelLower} này.
+                    Chưa có mục tiêu {periodLabelLower} nào.
                   </p>
                 </CardContent>
               </Card>

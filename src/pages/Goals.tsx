@@ -11,12 +11,11 @@ export const Goals: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"week" | "month" | "year">("week");
   const [allGoals, setAllGoals] = useState<Goal[]>([]);
 
-  const weekStart = format(
-    startOfWeek(new Date(), { weekStartsOn: 1 }),
-    "yyyy-MM-dd",
-  );
-  const monthStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
-  const yearStart = format(startOfYear(new Date()), "yyyy-MM-dd");
+  const now = new Date();
+  const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
+  const yearStart = format(startOfYear(now), "yyyy-MM-dd");
+  const currentYear = now.getFullYear();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -25,15 +24,12 @@ export const Goals: React.FC = () => {
         .from("goals")
         .select("*")
         .eq("user_id", user.id);
-
-      if (data) {
-        setAllGoals(data);
-      }
+      if (data) setAllGoals(data);
     };
     fetchStats();
   }, [user]);
 
-  // Calculate stats
+  // Stats: weekly and monthly use exact date match; yearly uses range
   const weeklyGoals = allGoals.filter(
     (g) => g.period_type === "week" && g.period_start_date === weekStart,
   );
@@ -41,7 +37,10 @@ export const Goals: React.FC = () => {
     (g) => g.period_type === "month" && g.period_start_date === monthStart,
   );
   const yearlyGoals = allGoals.filter(
-    (g) => g.period_type === "year" && g.period_start_date === yearStart,
+    (g) =>
+      g.period_type === "year" &&
+      g.period_start_date >= `${currentYear}-01-01` &&
+      g.period_start_date <= `${currentYear}-12-31`,
   );
 
   const completedWeekly = weeklyGoals.filter((g) => g.status === "done").length;
@@ -51,6 +50,37 @@ export const Goals: React.FC = () => {
   const completedYearly = yearlyGoals.filter((g) => g.status === "done").length;
   const totalPending = allGoals.filter((g) => g.status !== "done").length;
 
+  const statCards = [
+    {
+      label: "Tuần này",
+      tab: "week" as const,
+      done: completedWeekly,
+      total: weeklyGoals.length,
+      color: "var(--primary)",
+    },
+    {
+      label: "Tháng này",
+      tab: "month" as const,
+      done: completedMonthly,
+      total: monthlyGoals.length,
+      color: "var(--accent)",
+    },
+    {
+      label: "Năm nay",
+      tab: "year" as const,
+      done: completedYearly,
+      total: yearlyGoals.length,
+      color: "var(--success)",
+    },
+    {
+      label: "Chưa xong",
+      tab: null,
+      done: null,
+      total: totalPending,
+      color: "var(--warning)",
+    },
+  ];
+
   return (
     <div className="page-container">
       <header
@@ -58,154 +88,92 @@ export const Goals: React.FC = () => {
         style={{
           flexDirection: "column",
           alignItems: "stretch",
-          gap: "1.5rem",
+          gap: "1.25rem",
         }}
       >
         <div>
           <h1>Mục tiêu</h1>
-          <p className="text-muted">Quản lý mục tiêu theo Tuần, Tháng và Năm</p>
+          <p className="text-muted">Quản lý mục tiêu theo tuần, tháng và năm</p>
         </div>
 
         {/* Stats row */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: "0.75rem",
-          }}
-        >
-          <Card
-            style={{
-              padding: "0.875rem 1rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.25rem",
-              cursor: "pointer",
-              outline:
-                activeTab === "week" ? "2px solid var(--primary)" : "none",
-              outlineOffset: "2px",
-              transition: "outline 0.15s",
-            }}
-            onClick={() => setActiveTab("week")}
-          >
-            <span
-              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
-            >
-              Tuần này
-            </span>
-            <div
+        <div className="goals-stats-grid">
+          {statCards.map((s) => (
+            <Card
+              key={s.label}
               style={{
-                fontSize: "1.4rem",
-                fontWeight: 700,
-                color: "var(--text-primary)",
+                padding: "0.875rem 1rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.25rem",
+                cursor: s.tab ? "pointer" : "default",
+                outline:
+                  s.tab && activeTab === s.tab
+                    ? `2px solid ${s.color}`
+                    : "none",
+                outlineOffset: "2px",
+                transition: "outline 0.15s, box-shadow 0.15s",
+                boxShadow:
+                  s.tab && activeTab === s.tab
+                    ? `0 0 0 3px ${s.color}18`
+                    : undefined,
               }}
+              onClick={() => s.tab && setActiveTab(s.tab)}
             >
-              {completedWeekly} / {weeklyGoals.length}
-            </div>
-          </Card>
-          <Card
-            style={{
-              padding: "0.875rem 1rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.25rem",
-              cursor: "pointer",
-              outline:
-                activeTab === "month" ? "2px solid var(--primary)" : "none",
-              outlineOffset: "2px",
-              transition: "outline 0.15s",
-            }}
-            onClick={() => setActiveTab("month")}
-          >
-            <span
-              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
-            >
-              Tháng này
-            </span>
-            <div
-              style={{
-                fontSize: "1.4rem",
-                fontWeight: 700,
-                color: "var(--text-primary)",
-              }}
-            >
-              {completedMonthly} / {monthlyGoals.length}
-            </div>
-          </Card>
-          <Card
-            style={{
-              padding: "0.875rem 1rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.25rem",
-              cursor: "pointer",
-              outline:
-                activeTab === "year" ? "2px solid var(--primary)" : "none",
-              outlineOffset: "2px",
-              transition: "outline 0.15s",
-            }}
-            onClick={() => setActiveTab("year")}
-          >
-            <span
-              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
-            >
-              Năm nay
-            </span>
-            <div
-              style={{
-                fontSize: "1.4rem",
-                fontWeight: 700,
-                color: "var(--text-primary)",
-              }}
-            >
-              {completedYearly} / {yearlyGoals.length}
-            </div>
-          </Card>
-          <Card
-            style={{
-              padding: "0.875rem 1rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.25rem",
-            }}
-          >
-            <span
-              style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}
-            >
-              Chưa hoàn thành
-            </span>
-            <div
-              style={{
-                fontSize: "1.4rem",
-                fontWeight: 700,
-                color: "var(--warning)",
-              }}
-            >
-              {totalPending}
-            </div>
-          </Card>
+              <span
+                style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}
+              >
+                {s.label}
+              </span>
+              <div
+                style={{
+                  fontSize: "1.35rem",
+                  fontWeight: 700,
+                  color: s.color,
+                  lineHeight: 1.2,
+                }}
+              >
+                {s.done !== null ? `${s.done} / ${s.total}` : s.total}
+              </div>
+              {s.done !== null && s.total > 0 && (
+                <div
+                  style={{
+                    height: "4px",
+                    background: "var(--border-color)",
+                    borderRadius: "2px",
+                    overflow: "hidden",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.round((s.done / s.total) * 100)}%`,
+                      height: "100%",
+                      background: s.color,
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+              )}
+            </Card>
+          ))}
         </div>
 
         {/* Tabs */}
-        <div className="segmented-control" style={{ maxWidth: "380px" }}>
-          <button
-            className={`segmented-btn ${activeTab === "week" ? "active" : ""}`}
-            onClick={() => setActiveTab("week")}
-          >
-            Tuần này
-          </button>
-          <button
-            className={`segmented-btn ${activeTab === "month" ? "active" : ""}`}
-            onClick={() => setActiveTab("month")}
-          >
-            Tháng này
-          </button>
-          <button
-            className={`segmented-btn ${activeTab === "year" ? "active" : ""}`}
-            onClick={() => setActiveTab("year")}
-          >
-            Năm nay
-          </button>
+        <div className="segmented-control goals-tabs">
+          {(["week", "month", "year"] as const).map((tab) => (
+            <button
+              key={tab}
+              className={`segmented-btn ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab === "week"
+                ? "Tuần này"
+                : tab === "month"
+                  ? "Tháng này"
+                  : "Năm nay"}
+            </button>
+          ))}
         </div>
       </header>
 

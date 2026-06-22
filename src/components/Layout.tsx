@@ -28,7 +28,7 @@ export const Layout: React.FC = () => {
   const navItems = [
     { to: "/", icon: <BarChart2 size={20} />, label: "Dashboard" },
     { to: "/schedule", icon: <CheckSquare size={20} />, label: "Lịch trình" },
-    { to: "/calendar", icon: <Calendar size={20} />, label: "Lịch tháng" },
+    { to: "/calendar", icon: <Calendar size={20} />, label: "Lịch tổng quan" },
     { to: "/goals", icon: <Target size={20} />, label: "Mục tiêu" },
     { to: "/settings", icon: <Settings size={20} />, label: "Cài đặt" },
   ];
