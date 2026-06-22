@@ -13,6 +13,9 @@ export interface BaseTaskDisplayProps {
   onDuplicate?: (task: Task) => void;
   readonlyMove?: boolean;
   isProcessing?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 export interface TaskDisplayProps extends BaseTaskDisplayProps {

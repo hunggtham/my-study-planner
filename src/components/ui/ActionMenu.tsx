@@ -18,7 +18,7 @@ interface ActionMenuProps {
 export const ActionMenu: React.FC<ActionMenuProps> = ({
   trigger,
   items,
-  menuWidth = 150,
+  menuWidth = 160,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -36,57 +36,57 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
-      if (isOpen && !triggerRef.current?.contains(e.target as Node)) {
-        // We handle clicking inside the menu via the menu click handler itself
-        // or by wrapping the portal contents and checking it there.
-        // For simplicity, we can close it if we click outside the trigger.
-        // Wait, if they click the menu itself, it will close unless we check for the menu ref.
-        // We will handle it by adding a stopPropagation on the menu itself.
-        setIsOpen(false);
+      // Allow the click if it's inside the trigger (toggleMenu will handle closing it)
+      if (triggerRef.current?.contains(e.target as Node)) {
+        return;
       }
+      // Otherwise, close the menu
+      setIsOpen(false);
     };
 
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsOpen(false);
     };
 
-    const handleScroll = () => {
-      if (isOpen && !isMobile) setIsOpen(false);
-    };
-
-    if (isOpen) {
+    // Delay attaching to prevent the opening click from instantly closing it
+    const timer = setTimeout(() => {
       document.addEventListener("mousedown", handleOutsideClick);
       document.addEventListener("touchstart", handleOutsideClick);
       document.addEventListener("keydown", handleEscape);
-      window.addEventListener("scroll", handleScroll, true);
-    }
+    }, 10);
+
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("mousedown", handleOutsideClick);
       document.removeEventListener("touchstart", handleOutsideClick);
       document.removeEventListener("keydown", handleEscape);
-      window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [isOpen, isMobile]);
+  }, [isOpen]);
 
   const toggleMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+
     if (!isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
       const menuHeight = items.length * 42 + 20;
 
-      let top = rect.bottom + window.scrollY + 4; // Add a small gap to avoid awkward overlap
+      // Default: position below the trigger
+      let top = rect.bottom + window.scrollY + 4;
       let left = rect.right - menuWidth + window.scrollX;
 
+      // If not enough space below, and more space above, flip it up
       if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
-        // Place above
-        top = rect.top + window.scrollY - menuHeight;
+        top = rect.top + window.scrollY - menuHeight - 4;
       }
 
       // Keep within bounds
-      if (left < 0) left = 0;
+      if (left < 0) left = 4;
 
       setCoords({ top, left });
     }
@@ -106,8 +106,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               borderTopLeftRadius: "var(--radius-lg)",
               borderTopRightRadius: "var(--radius-lg)",
               boxShadow: "0 -4px 20px rgba(0,0,0,0.15)",
-              zIndex: 9999,
-              padding: "1rem 1rem 2rem 1rem",
+              zIndex: 99999,
+              padding: "1.5rem 1rem 2rem 1rem",
               display: "flex",
               flexDirection: "column",
               gap: "0.25rem",
@@ -122,11 +122,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               border: "1px solid var(--border-color)",
               borderRadius: "var(--radius-md)",
               boxShadow: "var(--shadow-lg)",
-              zIndex: 9999,
+              zIndex: 99999,
               display: "flex",
               flexDirection: "column",
               padding: "0.5rem 0",
               minWidth: "180px",
+              animation: "fadeIn 0.15s ease-out",
             }
       }
       onMouseDown={(e) => e.stopPropagation()}
@@ -141,6 +142,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
             background: "var(--border-color)",
             borderRadius: "2px",
             margin: "0 auto 1rem auto",
+            opacity: 0.5,
           }}
         />
       )}
@@ -154,6 +156,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
                 background: "var(--border-color)",
                 margin: "0.25rem 0",
                 width: "100%",
+                opacity: 0.5,
               }}
             />
           );
@@ -165,7 +168,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.5rem",
+              gap: "0.75rem",
               padding: isMobile ? "1rem" : "0.5rem 1rem",
               background: "transparent",
               border: "none",
@@ -178,24 +181,31 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               transition: "background 0.2s",
             }}
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               setIsOpen(false);
               if (item.onClick) item.onClick();
             }}
           >
-            {item.icon && <span style={{ display: "flex" }}>{item.icon}</span>}
+            {item.icon && (
+              <span style={{ display: "flex", opacity: 0.8 }}>{item.icon}</span>
+            )}
             {item.label}
           </button>
         );
       })}
       {isMobile && (
         <button
-          onClick={() => setIsOpen(false)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsOpen(false);
+          }}
           style={{
             marginTop: "1rem",
             padding: "1rem",
             background: "var(--bg-surface)",
-            border: "none",
+            border: "1px solid var(--border-color)",
             borderRadius: "var(--radius-md)",
             fontWeight: 600,
             cursor: "pointer",
@@ -214,6 +224,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
         ref={triggerRef}
         onClick={toggleMenu}
         style={{ display: "inline-block" }}
+        aria-label="Mở menu thao tác"
       >
         {trigger}
       </div>
@@ -229,9 +240,18 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
                   right: 0,
                   bottom: 0,
                   background: "rgba(0,0,0,0.5)",
-                  zIndex: 9998,
+                  zIndex: 99998,
+                  animation: "fadeIn 0.2s ease-out",
                 }}
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
               />
             )}
             {menuContent}
@@ -243,11 +263,15 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         .menu-item-btn:hover {
-          background: var(--bg-surface);
+          background: var(--bg-hover) !important;
         }
         .menu-item-btn.danger:hover {
-          background: rgba(239, 68, 68, 0.1);
+          background: rgba(239, 68, 68, 0.1) !important;
         }
       `}</style>
     </>

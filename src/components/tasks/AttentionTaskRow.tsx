@@ -20,6 +20,9 @@ interface AttentionTaskRowProps {
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
   isProcessing?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
@@ -28,6 +31,9 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
   onEdit,
   onDelete,
   isProcessing,
+  selectionMode,
+  isSelected,
+  onToggleSelect,
 }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
@@ -98,16 +104,38 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
         position: "relative",
         opacity: isProcessing ? 0.5 : task.status === "done" ? 0.7 : 1,
         pointerEvents: isProcessing ? "none" : "auto",
+        cursor: selectionMode ? "pointer" : "default",
+      }}
+      onClick={() => {
+        if (selectionMode && onToggleSelect) {
+          onToggleSelect(task.id);
+        }
       }}
     >
-      <div
-        style={{
-          color:
-            task.status === "done" ? "var(--success)" : "var(--text-muted)",
-        }}
-      >
-        <StatusIcon size={20} />
-      </div>
+      {selectionMode ? (
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect && onToggleSelect(task.id)}
+          style={{
+            width: "1.25rem",
+            height: "1.25rem",
+            cursor: "pointer",
+            accentColor: "var(--primary)",
+            marginRight: "0.25rem",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <div
+          style={{
+            color:
+              task.status === "done" ? "var(--success)" : "var(--text-muted)",
+          }}
+        >
+          <StatusIcon size={20} />
+        </div>
+      )}
 
       <div
         style={{
@@ -178,27 +206,29 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
           pointerEvents: isProcessing ? "none" : "auto",
         }}
       >
-        <ActionMenu
-          trigger={
-            <button
-              className="icon-btn"
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--text-muted)",
-                padding: "0.25rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "40px",
-                height: "40px",
-              }}
-            >
-              <MoreVertical size={18} />
-            </button>
-          }
-          items={actionItems}
-        />
+        {selectionMode ? null : (
+          <ActionMenu
+            trigger={
+              <button
+                className="icon-btn"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  padding: "0.25rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "40px",
+                  height: "40px",
+                }}
+              >
+                <MoreVertical size={18} />
+              </button>
+            }
+            items={actionItems}
+          />
+        )}
       </div>
     </div>
   );

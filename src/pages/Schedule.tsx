@@ -9,6 +9,16 @@ import { PartyPopper } from "lucide-react";
 import { ScheduleHeader } from "../components/schedule/ScheduleHeader";
 import { Button } from "../components/ui/Button";
 import { useSearchParams } from "react-router-dom";
+import {
+  CheckSquare,
+  Square,
+  Trash2,
+  CalendarDays,
+  CalendarPlus,
+  Play,
+  RotateCcw,
+  SkipForward,
+} from "lucide-react";
 
 export const Schedule: React.FC = () => {
   const { user } = useAuth();
@@ -47,6 +57,92 @@ export const Schedule: React.FC = () => {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  // Selection mode
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [targetDateForMove, setTargetDateForMove] = useState("");
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    const visibleIds = [
+      ...tasks.map((t) => t.id),
+      ...overdueTasks.map((t) => t.id),
+    ];
+    if (selectedIds.size === visibleIds.length && visibleIds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleIds));
+    }
+  };
+
+  const handleBulkAction = async (action: string, payload?: any) => {
+    if (!user || selectedIds.size === 0) return;
+
+    // For delete, require confirmation
+    if (action === "delete") {
+      if (
+        !window.confirm(
+          `Bạn chắc chắn muốn xóa ${selectedIds.size} task đã chọn?`,
+        )
+      ) {
+        return;
+      }
+    }
+
+    setLoading(true);
+    const ids = Array.from(selectedIds);
+
+    try {
+      let query;
+      if (action === "delete") {
+        query = supabase
+          .from("tasks")
+          .delete()
+          .in("id", ids)
+          .eq("user_id", user.id);
+      } else if (action === "move") {
+        query = supabase
+          .from("tasks")
+          .update({ date: payload, status: "moved" })
+          .in("id", ids)
+          .eq("user_id", user.id);
+      } else {
+        // status update
+        query = supabase
+          .from("tasks")
+          .update({ status: action })
+          .in("id", ids)
+          .eq("user_id", user.id);
+      }
+
+      const { error } = await query;
+      if (error) throw error;
+
+      // Also create new tasks for move? The prompt says:
+      // "update({ date: targetDate, status: 'moved' }) or use existing move logic if the app has a better convention."
+      // In this app, move creates a new task and marks old as moved.
+      // But for bulk action, updating date directly is much safer and simpler. The user explicitly suggested it.
+
+      // Clear selection and refresh
+      setSelectedIds(new Set());
+      if (action === "delete") {
+        setIsSelectionMode(false);
+      }
+      fetchScheduleTasks();
+    } catch (err: any) {
+      alert("Lỗi bulk action: " + err.message);
+      setLoading(false);
+    }
+  };
 
   const fetchScheduleTasks = async () => {
     if (!user) return;
@@ -246,6 +342,195 @@ export const Schedule: React.FC = () => {
         }}
       />
 
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "1rem",
+        }}
+      >
+        <Button
+          variant={isSelectionMode ? "primary" : "secondary"}
+          size="sm"
+          onClick={() => {
+            setIsSelectionMode(!isSelectionMode);
+            setSelectedIds(new Set());
+          }}
+        >
+          {isSelectionMode ? "Thoát chọn nhiều" : "Chọn nhiều"}
+        </Button>
+      </div>
+
+      {isSelectionMode && (
+        <div
+          className="bulk-action-toolbar"
+          style={{
+            position: "sticky",
+            top: "1rem",
+            zIndex: 30,
+            background: "var(--bg-panel)",
+            border: "1px solid var(--primary)",
+            borderRadius: "var(--radius-md)",
+            padding: "1rem",
+            marginBottom: "1.5rem",
+            boxShadow: "var(--shadow-lg)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+            }}
+          >
+            <span style={{ fontWeight: 600, color: "var(--primary)" }}>
+              Đã chọn {selectedIds.size} task
+            </span>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={toggleSelectAllVisible}
+              >
+                <CheckSquare size={14} style={{ marginRight: "0.25rem" }} />
+                Chọn tất cả đang hiển thị
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+                disabled={selectedIds.size === 0}
+              >
+                <Square size={14} style={{ marginRight: "0.25rem" }} />
+                Bỏ chọn
+              </Button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("done")}
+            >
+              <CheckSquare size={14} style={{ marginRight: "0.25rem" }} /> Hoàn
+              thành
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("in_progress")}
+            >
+              <Play size={14} style={{ marginRight: "0.25rem" }} /> Đang làm
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("todo")}
+            >
+              <RotateCcw size={14} style={{ marginRight: "0.25rem" }} /> Chưa
+              làm
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("skipped")}
+            >
+              <SkipForward size={14} style={{ marginRight: "0.25rem" }} /> Bỏ
+              qua
+            </Button>
+
+            <div
+              style={{
+                width: "1px",
+                background: "var(--border-color)",
+                margin: "0 0.25rem",
+              }}
+            />
+
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={() =>
+                handleBulkAction("move", format(new Date(), "yyyy-MM-dd"))
+              }
+            >
+              <CalendarDays size={14} style={{ marginRight: "0.25rem" }} /> Dời
+              hôm nay
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={() =>
+                handleBulkAction(
+                  "move",
+                  format(new Date(Date.now() + 86400000), "yyyy-MM-dd"),
+                )
+              }
+            >
+              <CalendarPlus size={14} style={{ marginRight: "0.25rem" }} /> Dời
+              ngày mai
+            </Button>
+
+            <div
+              style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
+            >
+              <input
+                type="date"
+                value={targetDateForMove}
+                onChange={(e) => setTargetDateForMove(e.target.value)}
+                style={{
+                  padding: "0.25rem 0.5rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--border-color)",
+                  background: "var(--bg-surface)",
+                  color: "var(--text-primary)",
+                  fontSize: "0.85rem",
+                  height: "32px",
+                }}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={selectedIds.size === 0 || !targetDateForMove}
+                onClick={() => handleBulkAction("move", targetDateForMove)}
+              >
+                Dời ngày khác
+              </Button>
+            </div>
+
+            <div
+              style={{
+                width: "1px",
+                background: "var(--border-color)",
+                margin: "0 0.25rem",
+              }}
+            />
+
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={() => handleBulkAction("delete")}
+            >
+              <Trash2 size={14} style={{ marginRight: "0.25rem" }} /> Xóa task
+              đã chọn
+            </Button>
+          </div>
+        </div>
+      )}
+
       {selectedDate < format(new Date(), "yyyy-MM-dd") && (
         <div
           style={{
@@ -322,6 +607,9 @@ export const Schedule: React.FC = () => {
                     onDelete={handleDelete}
                     onDuplicate={handleDuplicate}
                     isProcessing={processingId === task.id}
+                    selectionMode={isSelectionMode}
+                    isSelected={selectedIds.has(task.id)}
+                    onToggleSelect={toggleSelect}
                   />
                 ))}
               </div>
@@ -454,6 +742,9 @@ export const Schedule: React.FC = () => {
                               onDelete={handleDelete}
                               onDuplicate={handleDuplicate}
                               isProcessing={processingId === task.id}
+                              selectionMode={isSelectionMode}
+                              isSelected={selectedIds.has(task.id)}
+                              onToggleSelect={toggleSelect}
                             />
                           ))}
                         </div>
@@ -490,6 +781,9 @@ export const Schedule: React.FC = () => {
                             onDelete={handleDelete}
                             onDuplicate={handleDuplicate}
                             isProcessing={processingId === task.id}
+                            selectionMode={isSelectionMode}
+                            isSelected={selectedIds.has(task.id)}
+                            onToggleSelect={toggleSelect}
                           />
                         ))}
                       </div>
@@ -524,6 +818,9 @@ export const Schedule: React.FC = () => {
                                 onDelete={handleDelete}
                                 onDuplicate={handleDuplicate}
                                 isProcessing={processingId === task.id}
+                                selectionMode={isSelectionMode}
+                                isSelected={selectedIds.has(task.id)}
+                                onToggleSelect={toggleSelect}
                               />
                             ))}
                           </div>
@@ -549,6 +846,9 @@ export const Schedule: React.FC = () => {
                       onDelete={handleDelete}
                       onDuplicate={handleDuplicate}
                       isProcessing={processingId === task.id}
+                      selectionMode={isSelectionMode}
+                      isSelected={selectedIds.has(task.id)}
+                      onToggleSelect={toggleSelect}
                     />
                   ))}
                 </div>

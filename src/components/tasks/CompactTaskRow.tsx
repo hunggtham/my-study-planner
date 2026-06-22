@@ -14,6 +14,9 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
   onDuplicate,
   readonlyMove,
   isProcessing,
+  selectionMode,
+  isSelected,
+  onToggleSelect,
 }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
@@ -62,23 +65,42 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
         padding: "0.5rem 0.75rem",
         borderBottom: "1px solid var(--border-color)",
         background: "transparent",
-        position: "relative",
+      }}
+      onClick={() => {
+        if (selectionMode && onToggleSelect) {
+          onToggleSelect(task.id);
+        }
       }}
     >
-      <button
-        className="compact-done-btn"
-        onClick={toggleStatus}
-        style={{
-          background: "none",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
-          color:
-            task.status === "done" ? "var(--success)" : "var(--text-muted)",
-        }}
-      >
-        <StatusIcon size={18} />
-      </button>
+      {selectionMode ? (
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect && onToggleSelect(task.id)}
+          style={{
+            width: "1.25rem",
+            height: "1.25rem",
+            cursor: "pointer",
+            accentColor: "var(--primary)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <button
+          className="compact-done-btn"
+          onClick={toggleStatus}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            color:
+              task.status === "done" ? "var(--success)" : "var(--text-muted)",
+          }}
+        >
+          <StatusIcon size={18} />
+        </button>
+      )}
 
       <div
         style={{
@@ -132,27 +154,29 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
           pointerEvents: isProcessing ? "none" : "auto",
         }}
       >
-        <ActionMenu
-          trigger={
-            <button
-              className="icon-btn"
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--text-muted)",
-                padding: "0.25rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "40px",
-                height: "40px",
-              }}
-            >
-              <MoreVertical size={16} />
-            </button>
-          }
-          items={actionItems}
-        />
+        {selectionMode ? null : (
+          <ActionMenu
+            trigger={
+              <button
+                className="icon-btn"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  padding: "0.25rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "40px",
+                  height: "40px",
+                }}
+              >
+                <MoreVertical size={16} />
+              </button>
+            }
+            items={actionItems}
+          />
+        )}
       </div>
     </div>
   );
