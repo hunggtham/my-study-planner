@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
-import { ExcelImportWizard } from "../components/ExcelImportWizard";
+import { ExcelImportWizard } from "../components/excel/ExcelImportWizard";
 import { format } from "date-fns";
 
 export const Settings: React.FC = () => {
