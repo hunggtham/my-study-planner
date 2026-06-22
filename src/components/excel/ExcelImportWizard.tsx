@@ -240,6 +240,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
           payload.priority = tr.priority;
           payload.score_weight = tr.score_weight;
           payload.note = tr.note;
+          payload.task_type = "main";
         } else {
           const gr = r as GoalImportRow;
           payload.period_type = gr.period_type;

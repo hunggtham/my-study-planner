@@ -119,12 +119,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                   handleChange("task_type", e.target.value as TaskType)
                 }
               >
-                <option value="main">Chính</option>
+                <option value="main">Task chính</option>
                 <option value="secondary">Phụ</option>
                 <option value="exercise">Thể dục</option>
                 <option value="review">Ôn tập</option>
-                <option value="class">Học lớp</option>
-                <option value="optional">Tự chọn</option>
+                <option value="class">Task class (học trên trường)</option>
               </select>
             </label>
             <label className="field">

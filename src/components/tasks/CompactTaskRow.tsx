@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { BaseTaskDisplayProps } from "./TaskDisplay";
 import { getStatusMeta } from "../../utils/status";
 import { MoreVertical, Edit2, Trash2, ArrowRight, Copy } from "lucide-react";
 import { CategoryBadge, PriorityBadge } from "./TaskBadges";
+import { ActionMenu, ActionMenuItem } from "../ui/ActionMenu";
 
 export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
   task,
@@ -16,11 +17,40 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
 }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const toggleStatus = () => {
     onUpdate(task.id, { status: task.status === "done" ? "todo" : "done" });
   };
+
+  const actionItems: ActionMenuItem[] = [];
+  if (onEdit) {
+    actionItems.push({
+      label: "Sửa",
+      icon: <Edit2 size={14} />,
+      onClick: () => onEdit(task),
+    });
+  }
+  if (!readonlyMove && task.status !== "moved") {
+    actionItems.push({
+      label: "Dời",
+      icon: <ArrowRight size={14} />,
+      onClick: () => onMove(task.id),
+    });
+  }
+  if (onDuplicate) {
+    actionItems.push({
+      label: "Copy",
+      icon: <Copy size={14} />,
+      onClick: () => onDuplicate(task),
+    });
+  }
+  if (onDelete) {
+    actionItems.push({
+      label: "Xóa",
+      icon: <Trash2 size={14} />,
+      onClick: () => onDelete(task.id),
+      danger: true,
+    });
+  }
 
   return (
     <div
@@ -98,88 +128,31 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
       <div
         className="compact-actions"
         style={{
-          position: "relative",
           opacity: isProcessing ? 0.5 : 1,
           pointerEvents: isProcessing ? "none" : "auto",
         }}
       >
-        <button
-          className="icon-btn"
-          onClick={() => setMenuOpen(!menuOpen)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--text-muted)",
-            padding: "0.25rem",
-          }}
-        >
-          <MoreVertical size={16} />
-        </button>
-
-        {menuOpen && (
-          <div
-            className="compact-menu"
-            style={{
-              position: "absolute",
-              right: 0,
-              top: "100%",
-              background: "var(--bg-panel)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "var(--radius-sm)",
-              boxShadow: "var(--shadow-md)",
-              zIndex: 10,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: "120px",
-              overflow: "hidden",
-            }}
-          >
-            {onEdit && (
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onEdit(task);
-                }}
-              >
-                <Edit2 size={14} /> Sửa
-              </button>
-            )}
-            {!readonlyMove && task.status !== "moved" && (
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onMove(task.id);
-                }}
-              >
-                <ArrowRight size={14} /> Dời
-              </button>
-            )}
-            {onDuplicate && (
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDuplicate(task);
-                }}
-              >
-                <Copy size={14} /> Copy
-              </button>
-            )}
-            {onDelete && (
-              <button
-                className="menu-item-btn danger"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDelete(task.id);
-                }}
-              >
-                <Trash2 size={14} /> Xóa
-              </button>
-            )}
-          </div>
-        )}
+        <ActionMenu
+          trigger={
+            <button
+              className="icon-btn"
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                padding: "0.25rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "40px",
+                height: "40px",
+              }}
+            >
+              <MoreVertical size={16} />
+            </button>
+          }
+          items={actionItems}
+        />
       </div>
     </div>
   );

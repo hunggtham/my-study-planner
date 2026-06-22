@@ -55,6 +55,43 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const cleanupOptionalTasks = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { count, error: countErr } = await supabase
+        .from("tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("task_type", "optional");
+
+      if (countErr) throw countErr;
+
+      if (!count || count === 0) {
+        alert("Không tìm thấy task tự chọn nào cần chuẩn hóa.");
+        setLoading(false);
+        return;
+      }
+
+      const { error: updateErr } = await supabase
+        .from("tasks")
+        .update({ task_type: "main" })
+        .eq("user_id", user.id)
+        .eq("task_type", "optional");
+
+      if (updateErr) throw updateErr;
+
+      alert(
+        `Đã chuẩn hóa thành công ${count} task tự chọn thành task chính (bắt buộc).`,
+      );
+      checkDb();
+    } catch (err: any) {
+      alert("Lỗi khi chuẩn hóa: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchShare = async () => {
       if (!user) return;
@@ -435,6 +472,14 @@ export const Settings: React.FC = () => {
             disabled={loading}
           >
             Kiểm tra số task trong DB
+          </button>
+          <button
+            className="secondary-btn"
+            onClick={cleanupOptionalTasks}
+            disabled={loading}
+            style={{ marginLeft: "1rem" }}
+          >
+            Chuẩn hóa task tự chọn thành bắt buộc
           </button>
           {dbCheckResult && (
             <div

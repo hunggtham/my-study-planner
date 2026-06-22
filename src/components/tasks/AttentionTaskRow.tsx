@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { Task } from "../../types";
 import { getStatusMeta } from "../../utils/status";
 import { CategoryBadge, PriorityBadge } from "./TaskBadges";
+import { ActionMenu, ActionMenuItem } from "../ui/ActionMenu";
 import {
   MoreVertical,
   CheckCircle,
@@ -30,7 +31,59 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
 }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
-  const [menuOpen, setMenuOpen] = useState(false);
+
+  const actionItems: ActionMenuItem[] = [
+    ...(task.status !== "done"
+      ? [
+          {
+            label: "Hoàn thành",
+            icon: <CheckCircle size={14} />,
+            onClick: () => onAction(task.id, "done"),
+          },
+        ]
+      : []),
+    ...(task.status !== "in_progress" && task.status !== "done"
+      ? [
+          {
+            label: "Đang làm",
+            icon: <Clock size={14} />,
+            onClick: () => onAction(task.id, "in_progress"),
+          },
+        ]
+      : []),
+    ...(task.status !== "todo"
+      ? [
+          {
+            label: "Chuyển về To-do",
+            icon: <RotateCcw size={14} />,
+            onClick: () => onAction(task.id, "todo"),
+          },
+        ]
+      : []),
+    { type: "divider" },
+    {
+      label: "Chuyển sang Hôm nay",
+      icon: <ArrowRight size={14} />,
+      onClick: () => onAction(task.id, "move_today"),
+    },
+    {
+      label: "Chuyển sang Ngày mai",
+      icon: <CalendarPlus size={14} />,
+      onClick: () => onAction(task.id, "move_tomorrow"),
+    },
+    { type: "divider" },
+    {
+      label: "Sửa chi tiết",
+      icon: <Edit2 size={14} />,
+      onClick: () => onEdit(task),
+    },
+    {
+      label: "Xóa",
+      icon: <Trash2 size={14} />,
+      onClick: () => onDelete(task.id),
+      danger: true,
+    },
+  ];
 
   return (
     <div
@@ -118,122 +171,34 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
         </div>
       </div>
 
-      <div style={{ position: "relative" }}>
-        <button
-          className="icon-btn"
-          onClick={() => setMenuOpen(!menuOpen)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--text-muted)",
-            padding: "0.25rem",
-            cursor: "pointer",
-          }}
-        >
-          <MoreVertical size={18} />
-        </button>
-
-        {menuOpen && (
-          <div
-            className="compact-menu"
-            style={{
-              position: "absolute",
-              right: 0,
-              top: "100%",
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "var(--radius-sm)",
-              boxShadow: "var(--shadow-md)",
-              zIndex: 20,
-              display: "flex",
-              flexDirection: "column",
-              minWidth: "180px",
-              overflow: "hidden",
-            }}
-          >
-            {task.status !== "done" && (
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onAction(task.id, "done");
-                }}
-              >
-                <CheckCircle size={14} /> Hoàn thành
-              </button>
-            )}
-            {task.status !== "in_progress" && task.status !== "done" && (
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onAction(task.id, "in_progress");
-                }}
-              >
-                <Clock size={14} /> Đang làm
-              </button>
-            )}
-            {task.status !== "todo" && (
-              <button
-                className="menu-item-btn"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onAction(task.id, "todo");
-                }}
-              >
-                <RotateCcw size={14} /> Chuyển về To-do
-              </button>
-            )}
-            <div
+      <div
+        className="compact-actions"
+        style={{
+          opacity: isProcessing ? 0.5 : 1,
+          pointerEvents: isProcessing ? "none" : "auto",
+        }}
+      >
+        <ActionMenu
+          trigger={
+            <button
+              className="icon-btn"
               style={{
-                borderTop: "1px solid var(--border-color)",
-                margin: "0.25rem 0",
-              }}
-            />
-            <button
-              className="menu-item-btn"
-              onClick={() => {
-                setMenuOpen(false);
-                onAction(task.id, "move_today");
-              }}
-            >
-              <ArrowRight size={14} /> Chuyển sang Hôm nay
-            </button>
-            <button
-              className="menu-item-btn"
-              onClick={() => {
-                setMenuOpen(false);
-                onAction(task.id, "move_tomorrow");
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                padding: "0.25rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "40px",
+                height: "40px",
               }}
             >
-              <CalendarPlus size={14} /> Chuyển sang Ngày mai
+              <MoreVertical size={18} />
             </button>
-            <div
-              style={{
-                borderTop: "1px solid var(--border-color)",
-                margin: "0.25rem 0",
-              }}
-            />
-            <button
-              className="menu-item-btn"
-              onClick={() => {
-                setMenuOpen(false);
-                onEdit(task);
-              }}
-            >
-              <Edit2 size={14} /> Sửa chi tiết
-            </button>
-            <button
-              className="menu-item-btn danger"
-              onClick={() => {
-                setMenuOpen(false);
-                onDelete(task.id);
-              }}
-            >
-              <Trash2 size={14} /> Xóa
-            </button>
-          </div>
-        )}
+          }
+          items={actionItems}
+        />
       </div>
     </div>
   );

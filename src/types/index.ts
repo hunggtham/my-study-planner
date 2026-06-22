@@ -8,6 +8,11 @@ export type TaskType =
   | "class"
   | "optional";
 
+export const normalizeTaskType = (type: string | undefined): TaskType => {
+  if (type === "optional") return "main";
+  return (type as TaskType) || "main";
+};
+
 export interface Task {
   id: string;
   user_id?: string;
