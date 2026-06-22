@@ -6,6 +6,13 @@
   border-radius: var(--radius-sm);
   font-weight: 500;
   transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.ui-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .ui-btn:disabled {

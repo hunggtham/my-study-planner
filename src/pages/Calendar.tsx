@@ -33,6 +33,7 @@ import {
   RotateCcw,
   SkipForward,
 } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ interface YearViewProps {
 }
 
 const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
+  const { showToast } = useToast();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -84,15 +86,30 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
     new Set(),
   );
 
-  const [filters, setFilters] = useState<YearFilters>({
-    category: "",
-    taskType: "",
-    status: "",
-    priority: "",
-    dayType: "",
-    month: "",
-    keyword: "",
+  const [filters, setFilters] = useState<YearFilters>(() => {
+    const saved = localStorage.getItem("study-planner-calendar-year-filters");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {
+      category: "",
+      taskType: "",
+      status: "",
+      priority: "",
+      dayType: "",
+      month: "",
+      keyword: "",
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "study-planner-calendar-year-filters",
+      JSON.stringify(filters),
+    );
+  }, [filters]);
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -300,8 +317,15 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
       setSelectedIds(new Set());
       if (action === "delete") setIsSelectionMode(false);
       fetchYearTasks();
+      const actionText =
+        action === "delete"
+          ? "Đã xóa"
+          : action === "move"
+            ? "Đã dời"
+            : "Đã cập nhật";
+      showToast(`${actionText} ${ids.length} task.`, "success");
     } catch (err: any) {
-      alert("Lỗi bulk action: " + err.message);
+      showToast("Có lỗi khi lưu dữ liệu: " + err.message, "error");
     } finally {
       setIsProcessingBulk(false);
     }
@@ -919,6 +943,7 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
 
 export const CalendarView: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -1076,8 +1101,9 @@ export const CalendarView: React.FC = () => {
       }
       setIsFormOpen(false);
       fetchTasksNoCache();
+      showToast("Đã lưu task.", "success");
     } catch (err: any) {
-      alert("Lỗi: " + err.message);
+      showToast("Có lỗi khi lưu dữ liệu: " + err.message, "error");
     } finally {
       setIsSaving(false);
     }

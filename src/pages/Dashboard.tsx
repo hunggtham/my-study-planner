@@ -70,6 +70,24 @@ export const Dashboard: React.FC = () => {
   const getDoneCount = (list: Task[]) =>
     list.filter((t) => t.status === "done").length;
 
+  const incompleteToday = todayTasks.filter(
+    (t) => t.status !== "done" && t.status !== "skipped",
+  );
+  const top3Focus = [...incompleteToday]
+    .sort((a, b) => {
+      const pWeight: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      return (
+        (pWeight[b.priority || "low"] || 0) -
+        (pWeight[a.priority || "low"] || 0)
+      );
+    })
+    .slice(0, 3);
+
+  const nowTime = format(now, "HH:mm");
+  const nextTask = incompleteToday
+    .filter((t) => t.start_time && t.start_time >= nowTime)
+    .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""))[0];
+
   return (
     <div className="page-container" style={{ padding: "1.5rem" }}>
       <header
@@ -340,22 +358,35 @@ export const Dashboard: React.FC = () => {
                     <h3
                       style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
                     >
-                      Task hôm nay
+                      Hôm nay cần tập trung
                     </h3>
                   </div>
-                  <Link
-                    to="/schedule"
-                    style={{
-                      fontSize: "0.875rem",
-                      color: "var(--primary)",
-                      textDecoration: "none",
-                    }}
-                  >
-                    Xem chi tiết
-                  </Link>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <Link
+                      to="/schedule"
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "var(--primary)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Lịch ngày
+                    </Link>
+                    <span style={{ color: "var(--border-color)" }}>|</span>
+                    <Link
+                      to="/calendar"
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "var(--primary)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Lịch năm
+                    </Link>
+                  </div>
                 </div>
                 <CardContent style={{ padding: "0" }}>
-                  {todayTasks.length === 0 ? (
+                  {incompleteToday.length === 0 ? (
                     <div
                       style={{
                         padding: "2rem",
@@ -363,11 +394,47 @@ export const Dashboard: React.FC = () => {
                         color: "var(--text-muted)",
                       }}
                     >
-                      Trống. Hãy thêm task cho hôm nay!
+                      Hoàn thành hết task hôm nay rồi! 🎉
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column" }}>
-                      {todayTasks.slice(0, 5).map((t, idx) => (
+                      {nextTask && (
+                        <div
+                          style={{
+                            padding: "1rem 1.5rem",
+                            borderBottom: "1px solid var(--border-color)",
+                            background: "var(--bg-surface)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "0.8rem",
+                              color: "var(--text-secondary)",
+                              marginBottom: "0.25rem",
+                            }}
+                          >
+                            Sắp diễn ra ({nextTask.start_time})
+                          </div>
+                          <div
+                            style={{ fontWeight: 600, color: "var(--primary)" }}
+                          >
+                            {nextTask.title}
+                          </div>
+                        </div>
+                      )}
+                      {top3Focus.length > 0 && (
+                        <div
+                          style={{
+                            padding: "0.75rem 1.5rem",
+                            fontSize: "0.875rem",
+                            color: "var(--text-muted)",
+                            background: "var(--bg-panel)",
+                          }}
+                        >
+                          Top {top3Focus.length} ưu tiên chưa hoàn thành
+                        </div>
+                      )}
+                      {top3Focus.map((t, idx) => (
                         <div
                           key={t.id}
                           style={{
@@ -376,7 +443,7 @@ export const Dashboard: React.FC = () => {
                             gap: "1rem",
                             padding: "1rem 1.5rem",
                             borderBottom:
-                              idx < Math.min(todayTasks.length, 5) - 1
+                              idx < top3Focus.length - 1
                                 ? "1px solid var(--border-color)"
                                 : "none",
                           }}
@@ -387,9 +454,11 @@ export const Dashboard: React.FC = () => {
                               height: "12px",
                               borderRadius: "50%",
                               background:
-                                t.status === "done"
-                                  ? "var(--success)"
-                                  : "var(--warning)",
+                                t.priority === "high"
+                                  ? "var(--danger)"
+                                  : t.priority === "medium"
+                                    ? "var(--warning)"
+                                    : "var(--success)",
                             }}
                           />
                           <div
@@ -398,12 +467,7 @@ export const Dashboard: React.FC = () => {
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
-                              textDecoration:
-                                t.status === "done" ? "line-through" : "none",
-                              color:
-                                t.status === "done"
-                                  ? "var(--text-muted)"
-                                  : "var(--text-primary)",
+                              color: "var(--text-primary)",
                             }}
                           >
                             {t.title}
@@ -421,25 +485,6 @@ export const Dashboard: React.FC = () => {
                           </div>
                         </div>
                       ))}
-                      {todayTasks.length > 5 && (
-                        <div
-                          style={{
-                            padding: "1rem",
-                            textAlign: "center",
-                            borderTop: "1px solid var(--border-color)",
-                          }}
-                        >
-                          <Link
-                            to="/schedule"
-                            style={{
-                              fontSize: "0.875rem",
-                              color: "var(--text-secondary)",
-                            }}
-                          >
-                            + {todayTasks.length - 5} task nữa
-                          </Link>
-                        </div>
-                      )}
                     </div>
                   )}
                 </CardContent>

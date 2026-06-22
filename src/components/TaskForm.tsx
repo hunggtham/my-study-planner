@@ -54,10 +54,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             <label className="field">
               Tiêu đề *
               <input
+                autoFocus
                 required
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleChange("title", e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.ctrlKey) handleSubmit(e);
+                }}
               />
             </label>
             <label className="field">

@@ -5,6 +5,7 @@ import { Task } from "../types";
 import { TaskDisplay } from "../components/tasks/TaskDisplay";
 import { TaskForm } from "../components/TaskForm";
 import { format } from "date-fns";
+import { useToast } from "../context/ToastContext";
 import { PartyPopper } from "lucide-react";
 import { ScheduleHeader } from "../components/schedule/ScheduleHeader";
 import { Button } from "../components/ui/Button";
@@ -22,6 +23,7 @@ import {
 
 export const Schedule: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlDate = searchParams.get("date");
 
@@ -138,8 +140,16 @@ export const Schedule: React.FC = () => {
         setIsSelectionMode(false);
       }
       fetchScheduleTasks();
+
+      const actionText =
+        action === "delete"
+          ? "Đã xóa"
+          : action === "move"
+            ? "Đã dời"
+            : "Đã cập nhật";
+      showToast(`${actionText} ${ids.length} task.`, "success");
     } catch (err: any) {
-      alert("Lỗi bulk action: " + err.message);
+      showToast("Có lỗi khi lưu dữ liệu: " + err.message, "error");
       setLoading(false);
     }
   };
@@ -200,9 +210,10 @@ export const Schedule: React.FC = () => {
     try {
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
+      showToast("Đã cập nhật task.", "success");
     } catch (err: any) {
       console.error("Update failed:", err);
-      alert("Lỗi cập nhật: " + err.message);
+      showToast("Có lỗi khi cập nhật: " + err.message, "error");
       if (backup) {
         setTasks((prev) => prev.map((t) => (t.id === id ? backup : t)));
         setOverdueTasks((prev) => prev.map((t) => (t.id === id ? backup : t)));
@@ -232,8 +243,9 @@ export const Schedule: React.FC = () => {
       }
       setIsFormOpen(false);
       fetchScheduleTasks();
+      showToast("Đã lưu task.", "success");
     } catch (err: any) {
-      alert("Lỗi: " + err.message);
+      showToast("Có lỗi khi lưu dữ liệu: " + err.message, "error");
     } finally {
       setIsSaving(false);
     }
@@ -253,9 +265,22 @@ export const Schedule: React.FC = () => {
     try {
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
+      showToast("Đã xóa task.", "success", {
+        label: "Hoàn tác",
+        onClick: async () => {
+          const taskToRestore =
+            backupTasks.find((t) => t.id === id) ||
+            backupOverdue.find((t) => t.id === id);
+          if (taskToRestore) {
+            await supabase.from("tasks").insert([taskToRestore]);
+            fetchScheduleTasks();
+            showToast("Đã hoàn tác xóa task.", "info");
+          }
+        },
+      });
     } catch (err: any) {
       console.error("Delete failed:", err);
-      alert("Lỗi xóa task: " + err.message);
+      showToast("Lỗi xóa task: " + err.message, "error");
       setTasks(backupTasks);
       setOverdueTasks(backupOverdue);
     } finally {
@@ -306,9 +331,10 @@ export const Schedule: React.FC = () => {
       if (err2) throw err2;
 
       fetchScheduleTasks();
+      showToast("Đã dời task sang ngày mai.", "success");
     } catch (err: any) {
       console.error("Move failed:", err);
-      alert("Lỗi dời task: " + err.message);
+      showToast("Lỗi dời task: " + err.message, "error");
     } finally {
       setProcessingId(null);
     }

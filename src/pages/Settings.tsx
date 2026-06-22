@@ -33,21 +33,54 @@ export const Settings: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { count, error: countErr } = await supabase
+      const { data: tasks, error: taskErr } = await supabase
         .from("tasks")
-        .select("*", { count: "exact", head: true })
+        .select("*")
         .eq("user_id", user.id);
-      if (countErr) throw countErr;
-
-      const { data: topTasks, error: taskErr } = await supabase
-        .from("tasks")
-        .select("title, date, status, start_time")
-        .eq("user_id", user.id)
-        .order("date", { ascending: false })
-        .limit(5);
       if (taskErr) throw taskErr;
 
-      setDbCheckResult({ total: count, tasks: topTasks });
+      const { count: goalsCount } = await supabase
+        .from("goals")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      const total = tasks?.length || 0;
+      const done = tasks?.filter((t) => t.status === "done").length || 0;
+      const todo = tasks?.filter((t) => t.status === "todo").length || 0;
+      const inProgress =
+        tasks?.filter((t) => t.status === "in_progress").length || 0;
+
+      const missingCategory =
+        tasks?.filter((t) => !t.category || t.category.trim() === "").length ||
+        0;
+      const missingTitle =
+        tasks?.filter((t) => !t.title || t.title.trim() === "").length || 0;
+      const invalidDate =
+        tasks?.filter((t) => !t.date || t.date.trim() === "").length || 0;
+      const optionalTasks =
+        tasks?.filter((t) => t.task_type === "optional").length || 0;
+
+      // check duplicates
+      const sigs = new Set();
+      let duplicates = 0;
+      tasks?.forEach((t) => {
+        const sig = `${t.date}-${t.title}-${t.category}-${t.start_time}`;
+        if (sigs.has(sig)) duplicates++;
+        else sigs.add(sig);
+      });
+
+      setDbCheckResult({
+        total,
+        goals: goalsCount || 0,
+        done,
+        todo,
+        inProgress,
+        missingCategory,
+        missingTitle,
+        invalidDate,
+        optionalTasks,
+        duplicates,
+      });
     } catch (err: any) {
       alert("Lỗi khi kiểm tra DB: " + err.message);
     } finally {
@@ -462,49 +495,109 @@ export const Settings: React.FC = () => {
 
       <Card className="settings-section">
         <CardContent style={{ paddingTop: "1.5rem" }}>
-          <h3>Kiểm tra dữ liệu cloud</h3>
+          <h3>Kiểm tra sức khỏe dữ liệu (Data Health)</h3>
           <p className="text-muted">
-            Kiểm tra xem dữ liệu đã được lưu thành công trên database chưa.
+            Theo dõi trạng thái dữ liệu và chuẩn hóa các trường thông tin không
+            hợp lệ.
           </p>
-          <button
-            className="secondary-btn"
-            onClick={checkDb}
-            disabled={loading}
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              flexWrap: "wrap",
+              marginTop: "1rem",
+            }}
           >
-            Kiểm tra số task trong DB
-          </button>
-          <button
-            className="secondary-btn"
-            onClick={cleanupOptionalTasks}
-            disabled={loading}
-            style={{ marginLeft: "1rem" }}
-          >
-            Chuẩn hóa task tự chọn thành bắt buộc
-          </button>
+            <Button
+              variant="secondary"
+              onClick={checkDb}
+              disabled={loading}
+              style={{ width: "auto" }}
+            >
+              Phân tích dữ liệu
+            </Button>
+            {dbCheckResult?.optionalTasks > 0 && (
+              <Button
+                variant="primary"
+                onClick={cleanupOptionalTasks}
+                disabled={loading}
+                style={{ width: "auto" }}
+              >
+                Chuẩn hóa {dbCheckResult.optionalTasks} task tự chọn
+              </Button>
+            )}
+            {dbCheckResult && (
+              <Button
+                variant="secondary"
+                disabled={loading}
+                style={{ width: "auto" }}
+                onClick={() => {
+                  const dataStr =
+                    "data:text/json;charset=utf-8," +
+                    encodeURIComponent(JSON.stringify(dbCheckResult, null, 2));
+                  const downloadAnchorNode = document.createElement("a");
+                  downloadAnchorNode.setAttribute("href", dataStr);
+                  downloadAnchorNode.setAttribute(
+                    "download",
+                    "data_health_diagnostic.json",
+                  );
+                  document.body.appendChild(downloadAnchorNode);
+                  downloadAnchorNode.click();
+                  downloadAnchorNode.remove();
+                }}
+              >
+                Xuất Diagnostic JSON
+              </Button>
+            )}
+          </div>
+
           {dbCheckResult && (
             <div
               style={{
-                marginTop: "1rem",
+                marginTop: "1.5rem",
                 padding: "1rem",
-                background: "var(--surface-color)",
-                borderRadius: "8px",
+                background: "var(--bg-panel)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--border-color)",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "1rem",
               }}
             >
-              <p>
-                <strong>Tổng số task:</strong> {dbCheckResult.total}
-              </p>
-              {dbCheckResult.tasks?.length > 0 && (
-                <div style={{ marginTop: "0.5rem" }}>
-                  <strong>5 task gần nhất:</strong>
-                  <ul style={{ marginLeft: "1.5rem", marginTop: "0.5rem" }}>
-                    {dbCheckResult.tasks.map((t: any, i: number) => (
-                      <li key={i}>
-                        {t.title} - {t.date} {t.start_time} ({t.status})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div>
+                <strong>Tổng quan</strong>
+                <ul style={{ marginLeft: "1.5rem", marginTop: "0.5rem" }}>
+                  <li>Tổng Tasks: {dbCheckResult.total}</li>
+                  <li>Tổng Goals: {dbCheckResult.goals}</li>
+                  <li>Hoàn thành: {dbCheckResult.done}</li>
+                  <li>Đang làm: {dbCheckResult.inProgress}</li>
+                  <li>Chưa làm: {dbCheckResult.todo}</li>
+                </ul>
+              </div>
+              <div>
+                <strong>Cảnh báo dữ liệu</strong>
+                <ul
+                  style={{
+                    marginLeft: "1.5rem",
+                    marginTop: "0.5rem",
+                    color:
+                      dbCheckResult.missingCategory > 0 ||
+                      dbCheckResult.missingTitle > 0 ||
+                      dbCheckResult.invalidDate > 0 ||
+                      dbCheckResult.duplicates > 0
+                        ? "var(--warning)"
+                        : "var(--text-secondary)",
+                  }}
+                >
+                  <li>Thiếu danh mục: {dbCheckResult.missingCategory}</li>
+                  <li>Thiếu tiêu đề: {dbCheckResult.missingTitle}</li>
+                  <li>Ngày không hợp lệ: {dbCheckResult.invalidDate}</li>
+                  <li>Task nghi ngờ trùng lặp: {dbCheckResult.duplicates}</li>
+                  <li>
+                    Task loại 'optional' cũ: {dbCheckResult.optionalTasks}
+                  </li>
+                </ul>
+              </div>
             </div>
           )}
         </CardContent>
