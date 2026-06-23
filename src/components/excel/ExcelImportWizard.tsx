@@ -306,7 +306,12 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
               Nhập dữ liệu lịch trình, mục tiêu và bảng phụ một cách an toàn
             </p>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Icon button" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Đóng"
+            onClick={onClose}
+          >
             X
           </Button>
         </div>

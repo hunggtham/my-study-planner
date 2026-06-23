@@ -383,7 +383,8 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                     >
                       <Button
                         variant="secondary"
-                        size="icon" aria-label="Icon button"
+                        size="icon"
+                        aria-label="Đóng"
                         onClick={() => setBreakdownGoal(goal)}
                         title="Tách nhỏ mục tiêu"
                       >
@@ -391,7 +392,8 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                       </Button>
                       <Button
                         variant="danger"
-                        size="icon" aria-label="Icon button"
+                        size="icon"
+                        aria-label="Đóng"
                         onClick={() => deleteGoal(goal.id)}
                         title="Xóa"
                       >

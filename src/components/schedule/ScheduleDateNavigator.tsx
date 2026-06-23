@@ -28,7 +28,8 @@ export const ScheduleDateNavigator: React.FC<ScheduleDateNavigatorProps> = ({
     >
       <Button
         variant="ghost"
-        size="icon" aria-label="Icon button"
+        size="icon"
+        aria-label="Quay lại"
         onClick={() =>
           setSelectedDate(
             format(subDays(new Date(selectedDate), 1), "yyyy-MM-dd"),
@@ -66,7 +67,8 @@ export const ScheduleDateNavigator: React.FC<ScheduleDateNavigatorProps> = ({
 
       <Button
         variant="ghost"
-        size="icon" aria-label="Icon button"
+        size="icon"
+        aria-label="Tiếp theo"
         onClick={() =>
           setSelectedDate(
             format(addDays(new Date(selectedDate), 1), "yyyy-MM-dd"),

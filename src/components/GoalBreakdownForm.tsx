@@ -209,7 +209,8 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
           </div>
           <Button
             variant="ghost"
-            size="icon" aria-label="Icon button"
+            size="icon"
+            aria-label="Đóng"
             onClick={onClose}
             aria-label="Đóng"
             style={{ flexShrink: 0 }}
@@ -592,7 +593,8 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                       />
                       <Button
                         variant="danger"
-                        size="icon" aria-label="Icon button"
+                        size="icon"
+                        aria-label="Xóa"
                         onClick={() =>
                           setManualTasks(
                             manualTasks.filter((task) => task.id !== t.id),

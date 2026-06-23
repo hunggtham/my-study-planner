@@ -891,7 +891,8 @@ export const Settings: React.FC = () => {
                 <h3 style={{ margin: 0 }}>Xác nhận Nhập Dữ Liệu</h3>
                 <Button
                   variant="secondary"
-                  size="icon" aria-label="Icon button"
+                  size="icon"
+                  aria-label="Đóng"
                   onClick={() => setImportPreview(null)}
                   style={{ width: "auto" }}
                 >
