@@ -57,6 +57,7 @@ export const App: React.FC = () => {
             </Route>
 
             {/* Shared Dashboard (Public) */}
+            <Route path="/share/:slug" element={<SharedDashboard />} />
             <Route path="/:slug/shared" element={<SharedDashboard />} />
 
             {/* Fallback */}

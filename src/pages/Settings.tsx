@@ -824,7 +824,7 @@ export const Settings: React.FC = () => {
                   readOnly
                   value={
                     isActive
-                      ? `${appOrigin}/${shareSlug}/shared`
+                      ? `${appOrigin}/share/${shareSlug}`
                       : "Đã vô hiệu hóa"
                   }
                 />
@@ -833,7 +833,7 @@ export const Settings: React.FC = () => {
                   disabled={!isActive}
                   onClick={() => {
                     navigator.clipboard.writeText(
-                      `${appOrigin}/${shareSlug}/shared`,
+                      `${appOrigin}/share/${shareSlug}`,
                     );
                     showToast("Đã copy link vào clipboard!", "success");
                   }}

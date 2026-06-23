@@ -14,7 +14,7 @@ import {
   startOfYear,
 } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
@@ -28,6 +28,7 @@ import { Card, CardContent } from "../components/ui/Card";
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -291,7 +292,7 @@ export const Dashboard: React.FC = () => {
                     showDelete={true}
                     showBreakdown={true}
                     showNavigate={true}
-                    onNavigate={() => window.location.assign("/goals?tab=week")}
+                    onNavigate={() => navigate("/goals?tab=week")}
                   />
                 </CardContent>
               </Card>
@@ -324,9 +325,7 @@ export const Dashboard: React.FC = () => {
                     showDelete={true}
                     showBreakdown={true}
                     showNavigate={true}
-                    onNavigate={() =>
-                      window.location.assign("/goals?tab=month")
-                    }
+                    onNavigate={() => navigate("/goals?tab=month")}
                   />
                 </CardContent>
               </Card>
@@ -359,7 +358,7 @@ export const Dashboard: React.FC = () => {
                     showDelete={true}
                     showBreakdown={true}
                     showNavigate={true}
-                    onNavigate={() => window.location.assign("/goals?tab=year")}
+                    onNavigate={() => navigate("/goals?tab=year")}
                   />
                 </CardContent>
               </Card>
