@@ -25,6 +25,10 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
 
+  if (!items || items.length === 0) {
+    return null;
+  }
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -221,14 +225,37 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 
   return (
     <>
-      <div
-        ref={triggerRef}
-        onClick={toggleMenu}
-        style={{ display: "inline-block" }}
-        aria-label="Mở menu thao tác"
-      >
-        {trigger}
-      </div>
+      {React.isValidElement(trigger) ? (
+        React.cloneElement(
+          trigger as React.ReactElement,
+          {
+            ref: triggerRef as React.Ref<HTMLElement>,
+            onClick: toggleMenu,
+            "aria-label": "Mở menu thao tác",
+            type: "button",
+          } as React.HTMLAttributes<HTMLElement> & { type?: string },
+        )
+      ) : (
+        <button
+          type="button"
+          ref={triggerRef as any}
+          onClick={toggleMenu}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "none",
+            border: "none",
+            padding: "0.25rem",
+            cursor: "pointer",
+            minWidth: "40px",
+            minHeight: "40px",
+          }}
+          aria-label="Mở menu thao tác"
+        >
+          {trigger}
+        </button>
+      )}
       {isOpen &&
         createPortal(
           <>
