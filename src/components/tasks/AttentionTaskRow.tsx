@@ -4,7 +4,6 @@ import { getStatusMeta } from "../../utils/status";
 import { CategoryBadge, PriorityBadge } from "./TaskBadges";
 import { ActionMenu, ActionMenuItem } from "../ui/ActionMenu";
 import {
-  MoreVertical,
   CheckCircle,
   Clock,
   RotateCcw,
@@ -206,29 +205,7 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
           pointerEvents: isProcessing ? "none" : "auto",
         }}
       >
-        {selectionMode ? null : (
-          <ActionMenu
-            trigger={
-              <button
-                className="icon-btn"
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--text-muted)",
-                  padding: "0.25rem",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "40px",
-                  height: "40px",
-                }}
-              >
-                <MoreVertical size={18} />
-              </button>
-            }
-            items={actionItems}
-          />
-        )}
+        {selectionMode ? null : <ActionMenu items={actionItems} />}
       </div>
     </div>
   );

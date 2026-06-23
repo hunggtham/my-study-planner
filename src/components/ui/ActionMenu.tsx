@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { MoreVertical } from "lucide-react";
 
 export interface ActionMenuItem {
   type?: "item" | "divider";
@@ -10,15 +11,15 @@ export interface ActionMenuItem {
 }
 
 interface ActionMenuProps {
-  trigger: React.ReactNode;
   items: ActionMenuItem[];
   menuWidth?: number;
+  ariaLabel?: string;
 }
 
 export const ActionMenu: React.FC<ActionMenuProps> = ({
-  trigger,
   items,
   menuWidth = 160,
+  ariaLabel = "Mở menu thao tác",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -225,37 +226,16 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 
   return (
     <>
-      {React.isValidElement(trigger) ? (
-        React.cloneElement(
-          trigger as React.ReactElement,
-          {
-            ref: triggerRef as React.Ref<HTMLElement>,
-            onClick: toggleMenu,
-            "aria-label": "Mở menu thao tác",
-            type: "button",
-          } as React.HTMLAttributes<HTMLElement> & { type?: string },
-        )
-      ) : (
-        <button
-          type="button"
-          ref={triggerRef as any}
-          onClick={toggleMenu}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "none",
-            border: "none",
-            padding: "0.25rem",
-            cursor: "pointer",
-            minWidth: "40px",
-            minHeight: "40px",
-          }}
-          aria-label="Mở menu thao tác"
-        >
-          {trigger}
-        </button>
-      )}
+      <button
+        type="button"
+        ref={triggerRef as any}
+        aria-label={ariaLabel}
+        className="action-menu-trigger"
+        onClick={toggleMenu}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <MoreVertical size={20} />
+      </button>
       {isOpen &&
         createPortal(
           <>
