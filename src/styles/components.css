@@ -163,25 +163,25 @@
 }
 
 .action-menu-trigger {
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
   color: var(--text-muted);
   cursor: pointer;
   pointer-events: auto;
   position: relative;
-  z-index: 2;
-  transition: all 0.2s ease;
+  z-index: 10;
 }
 
 .action-menu-trigger:hover {
   color: var(--text-main);
   background: var(--bg-hover);
+  border-color: var(--primary);
 }
 
 .action-menu-trigger:focus-visible {

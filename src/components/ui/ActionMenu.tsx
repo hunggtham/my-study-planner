@@ -231,8 +231,19 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
         ref={triggerRef as any}
         aria-label={ariaLabel}
         className="action-menu-trigger"
-        onClick={toggleMenu}
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleMenu(e);
+        }}
       >
         <MoreVertical size={20} />
       </button>
