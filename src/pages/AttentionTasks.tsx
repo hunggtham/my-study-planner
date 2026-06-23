@@ -4,10 +4,12 @@ import { useAuth } from "../hooks/useAuth";
 import { Task } from "../types";
 import { AttentionTaskRow } from "../components/tasks/AttentionTaskRow";
 import { TaskForm } from "../components/TaskForm";
+import { useToast } from "../context/ToastContext";
 import { format, addDays } from "date-fns";
 
 export const AttentionTasks: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,9 +98,10 @@ export const AttentionTasks: React.FC = () => {
           .update(patch)
           .eq("id", taskId);
         if (error) throw error;
+        showToast("Đã cập nhật task.", "success");
       } catch (err: any) {
         console.error("Task update failed:", err);
-        alert("Không thể cập nhật dữ liệu. Vui lòng thử lại.");
+        showToast("Không thể cập nhật dữ liệu. Vui lòng thử lại.", "error");
         if (backup)
           setTasks((prev) => prev.map((t) => (t.id === taskId ? backup : t)));
       } finally {
@@ -118,9 +121,10 @@ export const AttentionTasks: React.FC = () => {
     try {
       const { error } = await supabase.from("tasks").delete().eq("id", taskId);
       if (error) throw error;
+      showToast("Đã xóa task.", "success");
     } catch (err: any) {
       console.error("Task delete failed:", err);
-      alert("Không thể xóa dữ liệu. Vui lòng thử lại.");
+      showToast("Không thể xóa dữ liệu. Vui lòng thử lại.", "error");
       setTasks(backup);
     } finally {
       setProcessingId(null);
@@ -140,8 +144,9 @@ export const AttentionTasks: React.FC = () => {
       }
       setIsFormOpen(false);
       fetchAttentionTasks();
+      showToast("Đã lưu task.", "success");
     } catch (err: any) {
-      alert("Lỗi: " + err.message);
+      showToast("Lỗi: " + err.message, "error");
     } finally {
       setIsSaving(false);
     }

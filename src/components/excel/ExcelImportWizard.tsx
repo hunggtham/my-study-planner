@@ -15,6 +15,7 @@ import {
   normalizeGoalStatus,
   normalizePriority,
 } from "../../lib/excelImport";
+import { useToast } from "../../context/ToastContext";
 
 import { ExcelUploadStep } from "./ExcelUploadStep";
 import { ExcelSheetSelectStep } from "./ExcelSheetSelectStep";
@@ -34,6 +35,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
   onSuccess,
 }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
   const [workbook, setWorkbook] = useState<WorkBook | null>(null);
@@ -69,7 +71,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
         setSheets(wb.SheetNames);
         setStep(2);
       } catch (err) {
-        alert("Lỗi đọc file Excel.");
+        showToast("Lỗi đọc file Excel.", "error");
       }
     };
     reader.readAsBinaryString(file);
@@ -198,7 +200,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
 
       setStep(4);
     } catch (err: any) {
-      alert("Lỗi xem trước: " + err.message);
+      showToast("Lỗi xem trước: " + err.message, "error");
     } finally {
       setIsProcessing(false);
     }
@@ -304,7 +306,7 @@ export const ExcelImportWizard: React.FC<ExcelImportWizardProps> = ({
               Nhập dữ liệu lịch trình, mục tiêu và bảng phụ một cách an toàn
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" aria-label="Icon button" onClick={onClose}>
             X
           </Button>
         </div>

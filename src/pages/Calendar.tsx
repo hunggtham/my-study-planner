@@ -75,7 +75,10 @@ interface YearViewProps {
 const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
   const { showToast } = useToast();
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const saved = localStorage.getItem("study-planner-calendar-selected-year");
+    return saved ? parseInt(saved, 10) : currentYear;
+  });
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -142,6 +145,13 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
   useEffect(() => {
     fetchYearTasks();
   }, [user, selectedYear]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "study-planner-calendar-selected-year",
+      selectedYear.toString(),
+    );
+  }, [selectedYear]);
 
   // Unique categories for filter
   const allCategories = useMemo(

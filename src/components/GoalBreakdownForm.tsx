@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "./ui/Button";
+import { useToast } from "../context/ToastContext";
 import "../styles-taskform.css"; // Ensure standard modal styles are applied
 
 interface GoalBreakdownFormProps {
@@ -29,6 +30,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
   onSuccess,
 }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1: Goal Setup
@@ -110,7 +112,10 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
         }));
     } else {
       if (calculatedDates.length === 0) {
-        alert("Không thể tính toán ngày học. Vui lòng kiểm tra lại cấu hình!");
+        showToast(
+          "Không thể tính toán ngày học. Vui lòng kiểm tra lại cấu hình!",
+          "error",
+        );
         return;
       }
 
@@ -158,10 +163,10 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
       }));
       const { error } = await supabase.from("tasks").insert(tasksToInsert);
       if (error) throw error;
-      alert(`Đã tạo thành công ${tasksToInsert.length} task!`);
+      showToast(`Đã tạo thành công ${tasksToInsert.length} task!`, "success");
       onSuccess();
     } catch (err: any) {
-      alert("Lỗi khi tạo task: " + err.message);
+      showToast("Lỗi khi tạo task: " + err.message, "error");
     } finally {
       setIsGenerating(false);
     }
@@ -204,7 +209,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
           </div>
           <Button
             variant="ghost"
-            size="icon"
+            size="icon" aria-label="Icon button"
             onClick={onClose}
             aria-label="Đóng"
             style={{ flexShrink: 0 }}
@@ -587,7 +592,7 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                       />
                       <Button
                         variant="danger"
-                        size="icon"
+                        size="icon" aria-label="Icon button"
                         onClick={() =>
                           setManualTasks(
                             manualTasks.filter((task) => task.id !== t.id),

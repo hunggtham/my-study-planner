@@ -6,6 +6,7 @@ import { Trash2, GitMerge, Plus, AlertCircle } from "lucide-react";
 import { GoalBreakdownForm } from "./GoalBreakdownForm";
 import { Button } from "./ui/Button";
 import { Card, CardContent } from "./ui/Card";
+import { useToast } from "../context/ToastContext";
 
 interface GoalsPanelProps {
   periodType: "week" | "month" | "year";
@@ -21,6 +22,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
   isModal,
 }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -79,8 +81,9 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
         .update({ status: newStatus })
         .eq("id", id);
       if (error) throw error;
+      showToast("Đã cập nhật mục tiêu.", "success");
     } catch (err: any) {
-      alert("Không thể cập nhật mục tiêu. Vui lòng thử lại.");
+      showToast("Không thể cập nhật mục tiêu. Vui lòng thử lại.", "error");
       setGoals((prev) =>
         prev.map((g) => (g.id === id ? { ...g, is_done: !is_done } : g)),
       );
@@ -94,8 +97,9 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
     try {
       const { error } = await supabase.from("goals").delete().eq("id", id);
       if (error) throw error;
+      showToast("Đã xóa mục tiêu.", "success");
     } catch (err: any) {
-      alert("Không thể xóa mục tiêu. Vui lòng thử lại.");
+      showToast("Không thể xóa mục tiêu. Vui lòng thử lại.", "error");
       setGoals(backup);
     }
   };
@@ -125,9 +129,10 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
         const addedGoal = { ...data[0], is_done: false };
         setGoals((prev) => [...prev, addedGoal]);
         setNewTitle("");
+        showToast("Đã thêm mục tiêu mới.", "success");
       }
     } catch (err: any) {
-      alert("Lỗi thêm mục tiêu: " + err.message);
+      showToast("Lỗi thêm mục tiêu: " + err.message, "error");
     }
   };
 
@@ -378,7 +383,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                     >
                       <Button
                         variant="secondary"
-                        size="icon"
+                        size="icon" aria-label="Icon button"
                         onClick={() => setBreakdownGoal(goal)}
                         title="Tách nhỏ mục tiêu"
                       >
@@ -386,7 +391,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                       </Button>
                       <Button
                         variant="danger"
-                        size="icon"
+                        size="icon" aria-label="Icon button"
                         onClick={() => deleteGoal(goal.id)}
                         title="Xóa"
                       >

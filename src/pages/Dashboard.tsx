@@ -73,14 +73,10 @@ export const Dashboard: React.FC = () => {
   const incompleteToday = todayTasks.filter(
     (t) => t.status !== "done" && t.status !== "skipped",
   );
-  const top3Focus = [...incompleteToday]
-    .sort((a, b) => {
-      const pWeight: Record<string, number> = { high: 3, medium: 2, low: 1 };
-      return (
-        (pWeight[b.priority || "low"] || 0) -
-        (pWeight[a.priority || "low"] || 0)
-      );
-    })
+
+  const highPriorityFocus = incompleteToday
+    .filter((t) => t.priority === "high")
+    .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""))
     .slice(0, 3);
 
   const nowTime = format(now, "HH:mm");
@@ -370,7 +366,7 @@ export const Dashboard: React.FC = () => {
                         textDecoration: "none",
                       }}
                     >
-                      Lịch ngày
+                      Đi tới lịch trình
                     </Link>
                     <span style={{ color: "var(--border-color)" }}>|</span>
                     <Link
@@ -381,12 +377,37 @@ export const Dashboard: React.FC = () => {
                         textDecoration: "none",
                       }}
                     >
-                      Lịch năm
+                      Xem lịch tổng quan
+                    </Link>
+                    <span style={{ color: "var(--border-color)" }}>|</span>
+                    <Link
+                      to="/goals"
+                      style={{
+                        fontSize: "0.875rem",
+                        color: "var(--primary)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Xem mục tiêu
                     </Link>
                   </div>
                 </div>
                 <CardContent style={{ padding: "0" }}>
-                  {incompleteToday.length === 0 ? (
+                  {todayTasks.length === 0 ? (
+                    <div
+                      style={{
+                        padding: "2rem",
+                        textAlign: "center",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      Hôm nay chưa có task nào. Bạn có thể thêm task mới từ{" "}
+                      <Link to="/schedule" style={{ color: "var(--primary)" }}>
+                        Lịch trình
+                      </Link>
+                      .
+                    </div>
+                  ) : incompleteToday.length === 0 ? (
                     <div
                       style={{
                         padding: "2rem",
@@ -422,69 +443,78 @@ export const Dashboard: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      {top3Focus.length > 0 && (
+                      {highPriorityFocus.length > 0 ? (
+                        <>
+                          <div
+                            style={{
+                              padding: "0.75rem 1.5rem",
+                              fontSize: "0.875rem",
+                              color: "var(--text-muted)",
+                              background: "var(--bg-panel)",
+                            }}
+                          >
+                            Top ưu tiên đang chờ xử lý
+                          </div>
+                          {highPriorityFocus.map((t, idx) => (
+                            <div
+                              key={t.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "1rem",
+                                padding: "1rem 1.5rem",
+                                borderBottom:
+                                  idx < highPriorityFocus.length - 1
+                                    ? "1px solid var(--border-color)"
+                                    : "none",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  borderRadius: "50%",
+                                  background: "var(--danger)",
+                                }}
+                              />
+                              <div
+                                style={{
+                                  flex: 1,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  color: "var(--text-primary)",
+                                }}
+                              >
+                                {t.title}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "0.75rem",
+                                  color: "var(--text-secondary)",
+                                  background: "var(--bg-surface)",
+                                  padding: "0.25rem 0.5rem",
+                                  borderRadius: "var(--radius-sm)",
+                                }}
+                              >
+                                {t.category || "Chung"}
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
                         <div
                           style={{
-                            padding: "0.75rem 1.5rem",
+                            padding: "1rem 1.5rem",
                             fontSize: "0.875rem",
                             color: "var(--text-muted)",
                             background: "var(--bg-panel)",
+                            textAlign: "center",
                           }}
                         >
-                          Top {top3Focus.length} ưu tiên chưa hoàn thành
+                          Không có task ưu tiên cao đang chờ.
                         </div>
                       )}
-                      {top3Focus.map((t, idx) => (
-                        <div
-                          key={t.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "1rem",
-                            padding: "1rem 1.5rem",
-                            borderBottom:
-                              idx < top3Focus.length - 1
-                                ? "1px solid var(--border-color)"
-                                : "none",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "12px",
-                              height: "12px",
-                              borderRadius: "50%",
-                              background:
-                                t.priority === "high"
-                                  ? "var(--danger)"
-                                  : t.priority === "medium"
-                                    ? "var(--warning)"
-                                    : "var(--success)",
-                            }}
-                          />
-                          <div
-                            style={{
-                              flex: 1,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              color: "var(--text-primary)",
-                            }}
-                          >
-                            {t.title}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "0.75rem",
-                              color: "var(--text-secondary)",
-                              background: "var(--bg-surface)",
-                              padding: "0.25rem 0.5rem",
-                              borderRadius: "var(--radius-sm)",
-                            }}
-                          >
-                            {t.category || "Chung"}
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   )}
                 </CardContent>

@@ -120,13 +120,14 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               width: menuWidth,
               background: "var(--bg-panel)",
               border: "1px solid var(--border-color)",
-              borderRadius: "var(--radius-md)",
-              boxShadow: "var(--shadow-lg)",
+              borderRadius: "0.5rem", // slightly more rounded corners
+              boxShadow:
+                "0 4px 12px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05)", // subtle shadow
               zIndex: 99999,
               display: "flex",
               flexDirection: "column",
-              padding: "0.5rem 0",
-              minWidth: "180px",
+              padding: "0.25rem", // smaller outer padding for a tight menu look
+              minWidth: "200px", // min width 180-220px
               animation: "fadeIn 0.15s ease-out",
             }
       }
@@ -168,8 +169,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.75rem",
-              padding: isMobile ? "1rem" : "0.5rem 1rem",
+              gap: "0.5rem",
+              padding: isMobile ? "1rem" : "0.5rem 0.75rem",
               background: "transparent",
               border: "none",
               width: "100%",
@@ -177,8 +178,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               cursor: "pointer",
               fontSize: isMobile ? "1rem" : "0.875rem",
               color: item.danger ? "var(--danger)" : "var(--text-main)",
-              borderRadius: "0",
-              transition: "background 0.2s",
+              borderRadius: "0.25rem",
+              transition: "background 0.2s, color 0.2s",
             }}
             onClick={(e) => {
               e.preventDefault();

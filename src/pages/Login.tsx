@@ -10,13 +10,15 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/Card";
+import { useToast } from "../context/ToastContext";
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const { showToast } = useToast();
   const { session } = useAuth();
 
   if (session) {
@@ -30,12 +32,13 @@ export const Login: React.FC = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { error: authError } = await supabase.auth.signUp({
           email,
           password,
         });
-        if (error) throw error;
-        alert("Đăng ký thành công! Bạn có thể đăng nhập ngay.");
+        if (authError) throw authError;
+        showToast("Đăng ký thành công! Bạn có thể đăng nhập ngay.", "success");
+        setIsSignUp(false);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

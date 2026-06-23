@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../context/ToastContext";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 import { ExcelImportWizard } from "../components/excel/ExcelImportWizard";
@@ -8,11 +9,13 @@ import { format } from "date-fns";
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [shareSlug, setShareSlug] = useState("");
   const [hasShare, setHasShare] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [dbCheckResult, setDbCheckResult] = useState<any>(null);
+  const [expandedDups, setExpandedDups] = useState(false);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showExcelImport, setShowExcelImport] = useState(false);
@@ -61,13 +64,21 @@ export const Settings: React.FC = () => {
         tasks?.filter((t) => t.task_type === "optional").length || 0;
 
       // check duplicates
-      const sigs = new Set();
+      const sigs = new Map<string, number>();
       let duplicates = 0;
       tasks?.forEach((t) => {
-        const sig = `${t.date}-${t.title}-${t.category}-${t.start_time}`;
-        if (sigs.has(sig)) duplicates++;
-        else sigs.add(sig);
+        const sig = `${t.date} | ${t.start_time || "Cả ngày"} | ${t.title} | ${t.category || "Chung"}`;
+        if (sigs.has(sig)) {
+          sigs.set(sig, sigs.get(sig)! + 1);
+          duplicates++;
+        } else {
+          sigs.set(sig, 1);
+        }
       });
+
+      const duplicateGroups = Array.from(sigs.entries())
+        .filter(([, count]) => count > 1)
+        .map(([sig, count]) => ({ sig, count }));
 
       setDbCheckResult({
         total,
@@ -80,9 +91,10 @@ export const Settings: React.FC = () => {
         invalidDate,
         optionalTasks,
         duplicates,
+        duplicateGroups,
       });
     } catch (err: any) {
-      alert("Lỗi khi kiểm tra DB: " + err.message);
+      showToast("Lỗi khi kiểm tra DB: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -101,7 +113,7 @@ export const Settings: React.FC = () => {
       if (countErr) throw countErr;
 
       if (!count || count === 0) {
-        alert("Không tìm thấy task tự chọn nào cần chuẩn hóa.");
+        showToast("Không tìm thấy task tự chọn nào cần chuẩn hóa.", "info");
         setLoading(false);
         return;
       }
@@ -114,12 +126,51 @@ export const Settings: React.FC = () => {
 
       if (updateErr) throw updateErr;
 
-      alert(
-        `Đã chuẩn hóa thành công ${count} task tự chọn thành task chính (bắt buộc).`,
-      );
+      showToast(`Đã chuẩn hóa thành công ${count} task tự chọn.`, "success");
       checkDb();
     } catch (err: any) {
-      alert("Lỗi khi chuẩn hóa: " + err.message);
+      showToast("Lỗi khi chuẩn hóa: " + err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fillMissingCategory = async () => {
+    if (!user) return;
+    if (!window.confirm("Gán nhóm 'General' cho tất cả task chưa có danh mục?"))
+      return;
+
+    setLoading(true);
+    try {
+      const { data, error: selectErr } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("user_id", user.id)
+        .or("category.is.null,category.eq.");
+
+      if (selectErr) throw selectErr;
+
+      if (!data || data.length === 0) {
+        showToast("Không có task nào thiếu danh mục.", "info");
+        setLoading(false);
+        return;
+      }
+
+      const { error: updateErr } = await supabase
+        .from("tasks")
+        .update({ category: "General" })
+        .in(
+          "id",
+          data.map((d) => d.id),
+        )
+        .eq("user_id", user.id);
+
+      if (updateErr) throw updateErr;
+
+      showToast(`Đã gán nhóm mặc định cho ${data.length} task.`, "success");
+      checkDb();
+    } catch (err: any) {
+      showToast("Lỗi khi gán nhóm mặc định: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -153,14 +204,14 @@ export const Settings: React.FC = () => {
     try {
       const raw = localStorage.getItem("study-planner-demo-v1");
       if (!raw) {
-        alert("Không tìm thấy dữ liệu cũ trong localStorage.");
+        showToast("Không tìm thấy dữ liệu cũ trong localStorage.", "info");
         setLoading(false);
         return;
       }
 
       const data = JSON.parse(raw);
       if (!data.tasks || !Array.isArray(data.tasks)) {
-        alert("Dữ liệu không hợp lệ.");
+        showToast("Dữ liệu không hợp lệ.", "error");
         setLoading(false);
         return;
       }
@@ -242,8 +293,9 @@ export const Settings: React.FC = () => {
         });
 
       if (tasksToInsert.length === 0) {
-        alert(
-          `Không có dữ liệu mới nào để đồng bộ. Đã bỏ qua ${skippedCount} task trùng lặp, ${invalidCount} task không hợp lệ.`,
+        showToast(
+          `Không có dữ liệu mới nào để đồng bộ. Đã bỏ qua ${skippedCount} trùng lặp, ${invalidCount} lỗi.`,
+          "info",
         );
         setLoading(false);
         return;
@@ -252,23 +304,13 @@ export const Settings: React.FC = () => {
       const { error } = await supabase.from("tasks").insert(tasksToInsert);
       if (error) throw error;
 
-      alert(
-        `Đã đồng bộ ${tasksToInsert.length} task lên Supabase. Đã bỏ qua ${skippedCount} task trùng, ${invalidCount} task lỗi. Vào Lịch tháng để xem toàn bộ task.`,
+      showToast(
+        `Đã đồng bộ ${tasksToInsert.length} task lên đám mây.`,
+        "success",
       );
-
-      const { count: finalCount, error: countError } = await supabase
-        .from("tasks")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      if (!countError) {
-        alert(`Tài khoản hiện có ${finalCount} task trong database.`);
-        if (finalCount === 0) {
-          alert("Insert may have failed due to RLS or user mismatch.");
-        }
-      }
     } catch (err: any) {
       console.error(err);
-      alert("Có lỗi xảy ra: " + err.message);
+      showToast("Có lỗi xảy ra: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -286,7 +328,7 @@ export const Settings: React.FC = () => {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        alert("Không có dữ liệu để xuất.");
+        showToast("Không có dữ liệu để xuất.", "info");
         return;
       }
 
@@ -314,7 +356,7 @@ export const Settings: React.FC = () => {
         `study_planner_tasks_${new Date().toISOString().split("T")[0]}.xlsx`,
       );
     } catch (err: any) {
-      alert("Lỗi xuất Excel: " + err.message);
+      showToast("Lỗi xuất Excel: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -332,13 +374,13 @@ export const Settings: React.FC = () => {
       const data = utils.sheet_to_json(ws);
 
       if (!data || data.length === 0) {
-        alert("File không có dữ liệu");
+        showToast("File không có dữ liệu", "error");
         return;
       }
 
       setImportPreview(data);
     } catch (err: any) {
-      alert("Lỗi đọc file: " + err.message);
+      showToast("Lỗi đọc file: " + err.message, "error");
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -365,10 +407,10 @@ export const Settings: React.FC = () => {
       const { error } = await supabase.from("tasks").insert(tasksToInsert);
       if (error) throw error;
 
-      alert(`Nhập thành công ${tasksToInsert.length} task!`);
+      showToast(`Nhập thành công ${tasksToInsert.length} task!`, "success");
       setImportPreview(null);
     } catch (err: any) {
-      alert("Lỗi nhập dữ liệu: " + err.message);
+      showToast("Lỗi nhập dữ liệu: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -409,7 +451,7 @@ export const Settings: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      alert("Lỗi: " + err.message);
+      showToast("Lỗi tạo link: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -523,7 +565,17 @@ export const Settings: React.FC = () => {
                 disabled={loading}
                 style={{ width: "auto" }}
               >
-                Chuẩn hóa {dbCheckResult.optionalTasks} task tự chọn
+                Chuẩn hóa task tự chọn
+              </Button>
+            )}
+            {dbCheckResult?.missingCategory > 0 && (
+              <Button
+                variant="primary"
+                onClick={fillMissingCategory}
+                disabled={loading}
+                style={{ width: "auto" }}
+              >
+                Gán nhóm mặc định
               </Button>
             )}
             {dbCheckResult && (
@@ -532,9 +584,14 @@ export const Settings: React.FC = () => {
                 disabled={loading}
                 style={{ width: "auto" }}
                 onClick={() => {
+                  const exportPayload = {
+                    timestamp: new Date().toISOString(),
+                    user: user?.email,
+                    healthSummary: dbCheckResult,
+                  };
                   const dataStr =
                     "data:text/json;charset=utf-8," +
-                    encodeURIComponent(JSON.stringify(dbCheckResult, null, 2));
+                    encodeURIComponent(JSON.stringify(exportPayload, null, 2));
                   const downloadAnchorNode = document.createElement("a");
                   downloadAnchorNode.setAttribute("href", dataStr);
                   downloadAnchorNode.setAttribute(
@@ -592,11 +649,51 @@ export const Settings: React.FC = () => {
                   <li>Thiếu danh mục: {dbCheckResult.missingCategory}</li>
                   <li>Thiếu tiêu đề: {dbCheckResult.missingTitle}</li>
                   <li>Ngày không hợp lệ: {dbCheckResult.invalidDate}</li>
-                  <li>Task nghi ngờ trùng lặp: {dbCheckResult.duplicates}</li>
                   <li>
                     Task loại 'optional' cũ: {dbCheckResult.optionalTasks}
                   </li>
                 </ul>
+              </div>
+              <div>
+                <strong>
+                  Task nghi ngờ trùng lặp ({dbCheckResult.duplicates})
+                </strong>
+                {dbCheckResult.duplicateGroups &&
+                  dbCheckResult.duplicateGroups.length > 0 && (
+                    <div style={{ marginTop: "0.5rem" }}>
+                      <ul
+                        style={{
+                          marginLeft: "1.5rem",
+                          color: "var(--warning)",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        {dbCheckResult.duplicateGroups
+                          .slice(0, expandedDups ? undefined : 5)
+                          .map((dup: any, i: number) => (
+                            <li key={i} style={{ marginBottom: "0.25rem" }}>
+                              {dup.count}x: {dup.sig}
+                            </li>
+                          ))}
+                      </ul>
+                      {dbCheckResult.duplicateGroups.length > 5 && (
+                        <button
+                          className="secondary-btn"
+                          style={{
+                            padding: "0.25rem 0.5rem",
+                            fontSize: "0.75rem",
+                            width: "auto",
+                            marginTop: "0.5rem",
+                          }}
+                          onClick={() => setExpandedDups(!expandedDups)}
+                        >
+                          {expandedDups
+                            ? "Thu gọn"
+                            : `Xem thêm ${dbCheckResult.duplicateGroups.length - 5} nhóm`}
+                        </button>
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
           )}
@@ -794,7 +891,7 @@ export const Settings: React.FC = () => {
                 <h3 style={{ margin: 0 }}>Xác nhận Nhập Dữ Liệu</h3>
                 <Button
                   variant="secondary"
-                  size="icon"
+                  size="icon" aria-label="Icon button"
                   onClick={() => setImportPreview(null)}
                   style={{ width: "auto" }}
                 >
