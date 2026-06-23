@@ -162,18 +162,32 @@
 
 .dashboard-goals-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
+  gap: 1.25rem;
+  grid-template-columns: repeat(3, minmax(300px, 1fr));
+  align-items: stretch;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1279px) {
   .dashboard-goals-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .dashboard-goals-grid > :first-child {
+    grid-column: 1 / -1;
+  }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .dashboard-goals-grid {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-goals-grid > :first-child {
+    grid-column: auto;
+  }
+}
+
+.dashboard-goals-grid .goal-card-title {
+  font-size: 0.95rem;
+  line-height: 1.35;
 }
