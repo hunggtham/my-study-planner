@@ -16,6 +16,7 @@ interface GoalsPanelProps {
   variant?: "full" | "dashboard";
   maxItems?: number;
   showAdd?: boolean;
+  showToggle?: boolean;
   showActions?: boolean;
   showDelete?: boolean;
   showBreakdown?: boolean;
@@ -28,14 +29,23 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
   periodStartDate,
   onClose,
   isModal,
+  variant = "full",
   maxItems,
-  showAdd = true,
-  showActions = true,
-  showDelete = true,
-  showBreakdown = true,
+  showAdd,
+  showToggle,
+  showActions,
+  showDelete,
+  showBreakdown,
   showNavigate = false,
   onNavigate,
 }) => {
+  const isDashboard = variant === "dashboard";
+  const resolvedShowAdd = showAdd ?? !isDashboard;
+  const resolvedShowToggle = showToggle ?? true;
+  const resolvedShowDelete = showDelete ?? !isDashboard;
+  const resolvedShowBreakdown = showBreakdown ?? !isDashboard;
+  const resolvedShowActions = showActions ?? !isDashboard;
+
   const { user } = useAuth();
   const { showToast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -307,7 +317,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                       gap: "0.75rem",
                     }}
                   >
-                    {showActions ? (
+                    {resolvedShowToggle ? (
                       <input
                         type="checkbox"
                         checked={goal.is_done}
@@ -408,7 +418,9 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                         )}
                       </div>
                     </div>
-                    {(showBreakdown || showDelete) && (
+                    {(resolvedShowBreakdown ||
+                      resolvedShowDelete ||
+                      resolvedShowActions) && (
                       <div
                         style={{
                           display: "flex",
@@ -417,7 +429,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                           alignSelf: "flex-start",
                         }}
                       >
-                        {showBreakdown && (
+                        {resolvedShowBreakdown && (
                           <Button
                             variant="secondary"
                             size="icon"
@@ -428,7 +440,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                             <GitMerge size={15} />
                           </Button>
                         )}
-                        {showDelete && (
+                        {resolvedShowDelete && (
                           <Button
                             variant="danger"
                             size="icon"
@@ -447,7 +459,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
             )}
           </div>
 
-          {showAdd && (
+          {resolvedShowAdd && (
             <form
               onSubmit={addGoal}
               style={{

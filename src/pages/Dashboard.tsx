@@ -248,6 +248,102 @@ export const Dashboard: React.FC = () => {
             </Card>
           </div>
 
+          {/* Dashboard Goals Row */}
+          <div className="dashboard-goals-grid">
+            <Card>
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid var(--border-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <Target size={18} className="text-primary" />
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>
+                  Mục tiêu tuần này
+                </h3>
+              </div>
+              <CardContent style={{ padding: "1.5rem" }}>
+                <GoalsPanel
+                  periodType="week"
+                  periodStartDate={weekStartStr}
+                  variant="dashboard"
+                  maxItems={3}
+                  showAdd={false}
+                  showActions={false}
+                  showDelete={false}
+                  showBreakdown={false}
+                  showNavigate={true}
+                  onNavigate={() => navigate("/goals?tab=week")}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid var(--border-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <Target size={18} className="text-warning" />
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>
+                  Mục tiêu tháng này
+                </h3>
+              </div>
+              <CardContent style={{ padding: "1.5rem" }}>
+                <GoalsPanel
+                  periodType="month"
+                  periodStartDate={monthStartStr}
+                  variant="dashboard"
+                  maxItems={3}
+                  showAdd={false}
+                  showActions={false}
+                  showDelete={false}
+                  showBreakdown={false}
+                  showNavigate={true}
+                  onNavigate={() => navigate("/goals?tab=month")}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid var(--border-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <Target size={18} className="text-success" />
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>
+                  Mục tiêu năm nay
+                </h3>
+              </div>
+              <CardContent style={{ padding: "1.5rem" }}>
+                <GoalsPanel
+                  periodType="year"
+                  periodStartDate={format(startOfYear(now), "yyyy-MM-dd")}
+                  variant="dashboard"
+                  maxItems={3}
+                  showAdd={false}
+                  showActions={false}
+                  showDelete={false}
+                  showBreakdown={false}
+                  showNavigate={true}
+                  onNavigate={() => navigate("/goals?tab=year")}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Main Grid Area */}
           <div
             style={{
@@ -256,331 +352,212 @@ export const Dashboard: React.FC = () => {
               gap: "1.5rem",
             }}
           >
-            {/* Left Column: Goals */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.5rem",
-              }}
-            >
-              <Card>
+            <Card>
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid var(--border-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <BarChart2 size={18} className="text-success" />
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>
+                  Tiến độ theo môn học (Tháng)
+                </h3>
+              </div>
+              <CardContent style={{ padding: "1.5rem" }}>
+                <CategoryProgress tasks={monthTasks} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid var(--border-color)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
                 <div
                   style={{
-                    padding: "1.25rem 1.5rem",
-                    borderBottom: "1px solid var(--border-color)",
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
                   }}
                 >
-                  <Target size={18} className="text-primary" />
+                  <Clock size={18} className="text-primary" />
                   <h3
                     style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
                   >
-                    Mục tiêu tuần này
+                    Hôm nay cần tập trung
                   </h3>
                 </div>
-                <CardContent style={{ padding: "1.5rem" }}>
-                  <GoalsPanel
-                    periodType="week"
-                    periodStartDate={weekStartStr}
-                    variant="dashboard"
-                    maxItems={3}
-                    showAdd={true}
-                    showActions={true}
-                    showDelete={true}
-                    showBreakdown={true}
-                    showNavigate={true}
-                    onNavigate={() => navigate("/goals?tab=week")}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <div
-                  style={{
-                    padding: "1.25rem 1.5rem",
-                    borderBottom: "1px solid var(--border-color)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <Target size={18} className="text-warning" />
-                  <h3
-                    style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
-                  >
-                    Mục tiêu tháng này
-                  </h3>
-                </div>
-                <CardContent style={{ padding: "1.5rem" }}>
-                  <GoalsPanel
-                    periodType="month"
-                    periodStartDate={monthStartStr}
-                    variant="dashboard"
-                    maxItems={3}
-                    showAdd={true}
-                    showActions={true}
-                    showDelete={true}
-                    showBreakdown={true}
-                    showNavigate={true}
-                    onNavigate={() => navigate("/goals?tab=month")}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <div
-                  style={{
-                    padding: "1.25rem 1.5rem",
-                    borderBottom: "1px solid var(--border-color)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <Target size={18} className="text-success" />
-                  <h3
-                    style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
-                  >
-                    Mục tiêu năm nay
-                  </h3>
-                </div>
-                <CardContent style={{ padding: "1.5rem" }}>
-                  <GoalsPanel
-                    periodType="year"
-                    periodStartDate={format(startOfYear(now), "yyyy-MM-dd")}
-                    variant="dashboard"
-                    maxItems={3}
-                    showAdd={true}
-                    showActions={true}
-                    showDelete={true}
-                    showBreakdown={true}
-                    showNavigate={true}
-                    onNavigate={() => navigate("/goals?tab=year")}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Column: Progress & Overviews */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.5rem",
-              }}
-            >
-              <Card>
-                <div
-                  style={{
-                    padding: "1.25rem 1.5rem",
-                    borderBottom: "1px solid var(--border-color)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <BarChart2 size={18} className="text-success" />
-                  <h3
-                    style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
-                  >
-                    Tiến độ theo môn học (Tháng)
-                  </h3>
-                </div>
-                <CardContent style={{ padding: "1.5rem" }}>
-                  <CategoryProgress tasks={monthTasks} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <div
-                  style={{
-                    padding: "1.25rem 1.5rem",
-                    borderBottom: "1px solid var(--border-color)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <Link
+                    to="/schedule"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
+                      fontSize: "0.875rem",
+                      color: "var(--primary)",
+                      textDecoration: "none",
                     }}
                   >
-                    <Clock size={18} className="text-primary" />
-                    <h3
-                      style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
-                    >
-                      Hôm nay cần tập trung
-                    </h3>
-                  </div>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <Link
-                      to="/schedule"
-                      style={{
-                        fontSize: "0.875rem",
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Đi tới lịch trình
-                    </Link>
-                    <span style={{ color: "var(--border-color)" }}>|</span>
-                    <Link
-                      to="/calendar"
-                      style={{
-                        fontSize: "0.875rem",
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Xem lịch tổng quan
-                    </Link>
-                    <span style={{ color: "var(--border-color)" }}>|</span>
-                    <Link
-                      to="/goals"
-                      style={{
-                        fontSize: "0.875rem",
-                        color: "var(--primary)",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Xem mục tiêu
-                    </Link>
-                  </div>
+                    Đi tới lịch trình
+                  </Link>
+                  <span style={{ color: "var(--border-color)" }}>|</span>
+                  <Link
+                    to="/calendar"
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "var(--primary)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Xem lịch tổng quan
+                  </Link>
+                  <span style={{ color: "var(--border-color)" }}>|</span>
+                  <Link
+                    to="/goals"
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "var(--primary)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Xem mục tiêu
+                  </Link>
                 </div>
-                <CardContent style={{ padding: "0" }}>
-                  {todayTasks.length === 0 ? (
-                    <div
-                      style={{
-                        padding: "2rem",
-                        textAlign: "center",
-                        color: "var(--text-muted)",
-                      }}
-                    >
-                      Hôm nay chưa có task nào. Bạn có thể thêm task mới từ{" "}
-                      <Link to="/schedule" style={{ color: "var(--primary)" }}>
-                        Lịch trình
-                      </Link>
-                      .
-                    </div>
-                  ) : incompleteToday.length === 0 ? (
-                    <div
-                      style={{
-                        padding: "2rem",
-                        textAlign: "center",
-                        color: "var(--text-muted)",
-                      }}
-                    >
-                      Hoàn thành hết task hôm nay rồi! 🎉
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      {nextTask && (
+              </div>
+              <CardContent style={{ padding: "0" }}>
+                {todayTasks.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "2rem",
+                      textAlign: "center",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    Hôm nay chưa có task nào. Bạn có thể thêm task mới từ{" "}
+                    <Link to="/schedule" style={{ color: "var(--primary)" }}>
+                      Lịch trình
+                    </Link>
+                    .
+                  </div>
+                ) : incompleteToday.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "2rem",
+                      textAlign: "center",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    Hoàn thành hết task hôm nay rồi! 🎉
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    {nextTask && (
+                      <div
+                        style={{
+                          padding: "1rem 1.5rem",
+                          borderBottom: "1px solid var(--border-color)",
+                          background: "var(--bg-surface)",
+                        }}
+                      >
                         <div
                           style={{
-                            padding: "1rem 1.5rem",
-                            borderBottom: "1px solid var(--border-color)",
-                            background: "var(--bg-surface)",
+                            fontSize: "0.8rem",
+                            color: "var(--text-secondary)",
+                            marginBottom: "0.25rem",
                           }}
                         >
-                          <div
-                            style={{
-                              fontSize: "0.8rem",
-                              color: "var(--text-secondary)",
-                              marginBottom: "0.25rem",
-                            }}
-                          >
-                            Sắp diễn ra ({nextTask.start_time})
-                          </div>
-                          <div
-                            style={{ fontWeight: 600, color: "var(--primary)" }}
-                          >
-                            {nextTask.title}
-                          </div>
+                          Sắp diễn ra ({nextTask.start_time})
                         </div>
-                      )}
-                      {highPriorityFocus.length > 0 ? (
-                        <>
-                          <div
-                            style={{
-                              padding: "0.75rem 1.5rem",
-                              fontSize: "0.875rem",
-                              color: "var(--text-muted)",
-                              background: "var(--bg-panel)",
-                            }}
-                          >
-                            Top ưu tiên đang chờ xử lý
-                          </div>
-                          {highPriorityFocus.map((t, idx) => (
-                            <div
-                              key={t.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "1rem",
-                                padding: "1rem 1.5rem",
-                                borderBottom:
-                                  idx < highPriorityFocus.length - 1
-                                    ? "1px solid var(--border-color)"
-                                    : "none",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: "12px",
-                                  height: "12px",
-                                  borderRadius: "50%",
-                                  background: "var(--danger)",
-                                }}
-                              />
-                              <div
-                                style={{
-                                  flex: 1,
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  color: "var(--text-primary)",
-                                }}
-                              >
-                                {t.title}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "0.75rem",
-                                  color: "var(--text-secondary)",
-                                  background: "var(--bg-surface)",
-                                  padding: "0.25rem 0.5rem",
-                                  borderRadius: "var(--radius-sm)",
-                                }}
-                              >
-                                {t.category || "Chung"}
-                              </div>
-                            </div>
-                          ))}
-                        </>
-                      ) : (
+                        <div
+                          style={{ fontWeight: 600, color: "var(--primary)" }}
+                        >
+                          {nextTask.title}
+                        </div>
+                      </div>
+                    )}
+                    {highPriorityFocus.length > 0 ? (
+                      <>
                         <div
                           style={{
-                            padding: "1rem 1.5rem",
+                            padding: "0.75rem 1.5rem",
                             fontSize: "0.875rem",
                             color: "var(--text-muted)",
                             background: "var(--bg-panel)",
-                            textAlign: "center",
                           }}
                         >
-                          Không có task ưu tiên cao đang chờ.
+                          Top ưu tiên đang chờ xử lý
                         </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                        {highPriorityFocus.map((t, idx) => (
+                          <div
+                            key={t.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "1rem",
+                              padding: "1rem 1.5rem",
+                              borderBottom:
+                                idx < highPriorityFocus.length - 1
+                                  ? "1px solid var(--border-color)"
+                                  : "none",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderRadius: "50%",
+                                background: "var(--danger)",
+                              }}
+                            />
+                            <div
+                              style={{
+                                flex: 1,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                color: "var(--text-primary)",
+                              }}
+                            >
+                              {t.title}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "var(--text-secondary)",
+                                background: "var(--bg-surface)",
+                                padding: "0.25rem 0.5rem",
+                                borderRadius: "var(--radius-sm)",
+                              }}
+                            >
+                              {t.category || "Chung"}
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <div
+                        style={{
+                          padding: "1rem 1.5rem",
+                          fontSize: "0.875rem",
+                          color: "var(--text-muted)",
+                          background: "var(--bg-panel)",
+                          textAlign: "center",
+                        }}
+                      >
+                        Không có task ưu tiên cao đang chờ.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
