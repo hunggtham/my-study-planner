@@ -212,7 +212,6 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
             size="icon"
             aria-label="Đóng"
             onClick={onClose}
-            aria-label="Đóng"
             style={{ flexShrink: 0 }}
           >
             <X size={18} />
