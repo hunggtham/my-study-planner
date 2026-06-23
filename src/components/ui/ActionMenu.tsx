@@ -10,7 +10,7 @@ export interface ActionMenuItem {
   danger?: boolean;
 }
 
-interface ActionMenuProps {
+export interface ActionMenuProps {
   items: ActionMenuItem[];
   menuWidth?: number;
   ariaLabel?: string;
@@ -19,16 +19,39 @@ interface ActionMenuProps {
 export const ActionMenu: React.FC<ActionMenuProps> = ({
   items,
   menuWidth = 160,
-  ariaLabel = "Mở menu thao tác",
+  ariaLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const [isMobile, setIsMobile] = useState(false);
-  const triggerRef = useRef<HTMLDivElement>(null);
+
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   if (!items || items.length === 0) {
     return null;
   }
+
+  // Handle coords when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current && !isMobile) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const menuHeight = items.length * 42 + 20;
+
+      let top = rect.bottom + window.scrollY + 4;
+      let left = rect.right - menuWidth + window.scrollX;
+
+      if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        top = rect.top + window.scrollY - menuHeight - 4;
+      }
+
+      if (left < 0) left = 4;
+
+      setCoords({ top, left });
+    }
+  }, [isOpen, isMobile, items.length, menuWidth]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -44,11 +67,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
     if (!isOpen) return;
 
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
-      // Allow the click if it's inside the trigger (toggleMenu will handle closing it)
-      if (triggerRef.current?.contains(e.target as Node)) {
+      if (buttonRef.current?.contains(e.target as Node)) {
         return;
       }
-      // Otherwise, close the menu
+      if (menuRef.current?.contains(e.target as Node)) {
+        return;
+      }
       setIsOpen(false);
     };
 
@@ -56,7 +80,6 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
       if (e.key === "Escape") setIsOpen(false);
     };
 
-    // Delay attaching to prevent the opening click from instantly closing it
     const timer = setTimeout(() => {
       document.addEventListener("mousedown", handleOutsideClick);
       document.addEventListener("touchstart", handleOutsideClick);
@@ -71,35 +94,9 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
     };
   }, [isOpen]);
 
-  const toggleMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const menuHeight = items.length * 42 + 20;
-
-      // Default: position below the trigger
-      let top = rect.bottom + window.scrollY + 4;
-      let left = rect.right - menuWidth + window.scrollX;
-
-      // If not enough space below, and more space above, flip it up
-      if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
-        top = rect.top + window.scrollY - menuHeight - 4;
-      }
-
-      // Keep within bounds
-      if (left < 0) left = 4;
-
-      setCoords({ top, left });
-    }
-    setIsOpen(!isOpen);
-  };
-
   const menuContent = (
     <div
+      ref={menuRef}
       style={
         isMobile
           ? {
@@ -125,14 +122,14 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               width: menuWidth,
               background: "var(--bg-panel)",
               border: "1px solid var(--border-color)",
-              borderRadius: "0.5rem", // slightly more rounded corners
+              borderRadius: "0.5rem",
               boxShadow:
-                "0 4px 12px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05)", // subtle shadow
+                "0 4px 12px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.05)",
               zIndex: 99999,
               display: "flex",
               flexDirection: "column",
-              padding: "0.25rem", // smaller outer padding for a tight menu look
-              minWidth: "200px", // min width 180-220px
+              padding: "0.25rem",
+              minWidth: "200px",
               animation: "fadeIn 0.15s ease-out",
             }
       }
@@ -228,8 +225,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
     <>
       <button
         type="button"
-        ref={triggerRef as any}
-        aria-label={ariaLabel}
+        ref={buttonRef}
+        aria-label={ariaLabel || "Mở menu thao tác"}
         className="action-menu-trigger"
         onPointerDown={(e) => {
           e.preventDefault();
@@ -242,10 +239,10 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          toggleMenu(e);
+          setIsOpen((prev) => !prev);
         }}
       >
-        <MoreVertical size={20} />
+        <MoreVertical size={20} aria-hidden="true" />
       </button>
       {isOpen &&
         createPortal(

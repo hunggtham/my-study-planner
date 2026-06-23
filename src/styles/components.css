@@ -165,6 +165,8 @@
 .action-menu-trigger {
   min-width: 44px;
   min-height: 44px;
+  width: 44px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -175,7 +177,8 @@
   cursor: pointer;
   pointer-events: auto;
   position: relative;
-  z-index: 10;
+  z-index: 20;
+  flex-shrink: 0;
 }
 
 .action-menu-trigger:hover {
