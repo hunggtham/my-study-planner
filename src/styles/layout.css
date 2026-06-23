@@ -191,3 +191,29 @@
   font-size: 0.95rem;
   line-height: 1.35;
 }
+
+.goal-card-title-dashboard {
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 650;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  display: block !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-goals-grid .goal-card-title,
+.dashboard-goals-grid .goal-card-title-dashboard {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+}

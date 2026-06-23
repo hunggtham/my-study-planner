@@ -359,7 +359,11 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                       }}
                     >
                       <span
-                        className="goal-card-title"
+                        className={
+                          variant === "dashboard"
+                            ? "goal-card-title goal-card-title-dashboard"
+                            : "goal-card-title"
+                        }
                         title={goal.title}
                         style={{
                           fontWeight: 600,
