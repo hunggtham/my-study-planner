@@ -11,6 +11,7 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  startOfYear,
 } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Link } from "react-router-dom";
@@ -63,9 +64,20 @@ export const Dashboard: React.FC = () => {
   const monthTasks = tasks.filter(
     (t) => t.date >= monthStartStr && t.date <= monthEndStr,
   );
-  const delayedTasks = tasks.filter(
-    (t) => t.status === "moved" || t.moved_count > 0,
-  );
+  const nowTime = format(now, "HH:mm");
+
+  const delayedTasks = tasks.filter((t) => {
+    if (t.status === "done") return false;
+    if (
+      t.date < todayStr &&
+      ["todo", "in_progress", "moved", "skipped"].includes(t.status || "todo")
+    )
+      return true;
+    // For today tasks, if start time is explicitly past and it's not done
+    if (t.date === todayStr && t.start_time && t.start_time < nowTime)
+      return true;
+    return false;
+  });
 
   const getDoneCount = (list: Task[]) =>
     list.filter((t) => t.status === "done").length;
@@ -79,7 +91,6 @@ export const Dashboard: React.FC = () => {
     .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""))
     .slice(0, 3);
 
-  const nowTime = format(now, "HH:mm");
   const nextTask = incompleteToday
     .filter((t) => t.start_time && t.start_time >= nowTime)
     .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""))[0];
@@ -273,6 +284,14 @@ export const Dashboard: React.FC = () => {
                   <GoalsPanel
                     periodType="week"
                     periodStartDate={weekStartStr}
+                    variant="dashboard"
+                    maxItems={3}
+                    showAdd={true}
+                    showActions={true}
+                    showDelete={true}
+                    showBreakdown={true}
+                    showNavigate={true}
+                    onNavigate={() => window.location.assign("/goals?tab=week")}
                   />
                 </CardContent>
               </Card>
@@ -298,6 +317,49 @@ export const Dashboard: React.FC = () => {
                   <GoalsPanel
                     periodType="month"
                     periodStartDate={monthStartStr}
+                    variant="dashboard"
+                    maxItems={3}
+                    showAdd={true}
+                    showActions={true}
+                    showDelete={true}
+                    showBreakdown={true}
+                    showNavigate={true}
+                    onNavigate={() =>
+                      window.location.assign("/goals?tab=month")
+                    }
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <div
+                  style={{
+                    padding: "1.25rem 1.5rem",
+                    borderBottom: "1px solid var(--border-color)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <Target size={18} className="text-success" />
+                  <h3
+                    style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
+                  >
+                    Mục tiêu năm nay
+                  </h3>
+                </div>
+                <CardContent style={{ padding: "1.5rem" }}>
+                  <GoalsPanel
+                    periodType="year"
+                    periodStartDate={format(startOfYear(now), "yyyy-MM-dd")}
+                    variant="dashboard"
+                    maxItems={3}
+                    showAdd={true}
+                    showActions={true}
+                    showDelete={true}
+                    showBreakdown={true}
+                    showNavigate={true}
+                    onNavigate={() => window.location.assign("/goals?tab=year")}
                   />
                 </CardContent>
               </Card>

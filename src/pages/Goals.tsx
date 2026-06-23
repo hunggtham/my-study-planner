@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format, startOfWeek, startOfMonth, startOfYear } from "date-fns";
 import { GoalsPanel } from "../components/GoalsPanel";
 import { supabase } from "../lib/supabase";
@@ -8,7 +9,26 @@ import { Card } from "../components/ui/Card";
 
 export const Goals: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"week" | "month" | "year">("week");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialTab =
+    (searchParams.get("tab") as "week" | "month" | "year") || "week";
+  const [activeTab, setActiveTab] = useState<"week" | "month" | "year">(
+    initialTab,
+  );
+
+  useEffect(() => {
+    const tab = searchParams.get("tab") as "week" | "month" | "year";
+    if (tab && ["week", "month", "year"].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: "week" | "month" | "year") => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
   const [allGoals, setAllGoals] = useState<Goal[]>([]);
 
   const now = new Date();
@@ -31,14 +51,18 @@ export const Goals: React.FC = () => {
 
   // Stats: weekly and monthly use exact date match; yearly uses range
   const weeklyGoals = allGoals.filter(
-    (g) => g.period_type === "week" && g.period_start_date === weekStart,
+    (g) =>
+      g.period_type?.trim().toLowerCase() === "week" &&
+      g.period_start_date === weekStart,
   );
   const monthlyGoals = allGoals.filter(
-    (g) => g.period_type === "month" && g.period_start_date === monthStart,
+    (g) =>
+      g.period_type?.trim().toLowerCase() === "month" &&
+      g.period_start_date === monthStart,
   );
   const yearlyGoals = allGoals.filter(
     (g) =>
-      g.period_type === "year" &&
+      g.period_type?.trim().toLowerCase().startsWith("year") &&
       g.period_start_date >= `${currentYear}-01-01` &&
       g.period_start_date <= `${currentYear}-12-31`,
   );
@@ -118,7 +142,7 @@ export const Goals: React.FC = () => {
                     ? `0 0 0 3px ${s.color}18`
                     : undefined,
               }}
-              onClick={() => s.tab && setActiveTab(s.tab)}
+              onClick={() => s.tab && handleTabChange(s.tab)}
             >
               <span
                 style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}
@@ -161,19 +185,17 @@ export const Goals: React.FC = () => {
 
         {/* Tabs */}
         <div className="segmented-control goals-tabs">
-          {(["week", "month", "year"] as const).map((tab) => (
-            <button
-              key={tab}
-              className={`segmented-btn ${activeTab === tab ? "active" : ""}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === "week"
-                ? "Tuần này"
-                : tab === "month"
-                  ? "Tháng này"
-                  : "Năm nay"}
-            </button>
-          ))}
+          {statCards
+            .filter((s) => s.tab !== null)
+            .map((stat) => (
+              <button
+                key={stat.label}
+                className={`segmented-btn ${activeTab === stat.tab ? "active" : ""}`}
+                onClick={() => stat.tab && handleTabChange(stat.tab)}
+              >
+                {stat.label}
+              </button>
+            ))}
         </div>
       </header>
 

@@ -32,6 +32,10 @@ export const Settings: React.FC = () => {
     );
   };
 
+  const appOrigin =
+    import.meta.env.VITE_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+    window.location.origin;
+
   const checkDb = async () => {
     if (!user) return;
     setLoading(true);
@@ -820,18 +824,19 @@ export const Settings: React.FC = () => {
                   readOnly
                   value={
                     isActive
-                      ? `${window.location.origin}/${shareSlug}/shared`
+                      ? `${appOrigin}/${shareSlug}/shared`
                       : "Đã vô hiệu hóa"
                   }
                 />
                 <button
                   className="secondary-btn"
                   disabled={!isActive}
-                  onClick={() =>
+                  onClick={() => {
                     navigator.clipboard.writeText(
-                      `${window.location.origin}/${shareSlug}/shared`,
-                    )
-                  }
+                      `${appOrigin}/${shareSlug}/shared`,
+                    );
+                    showToast("Đã copy link vào clipboard!", "success");
+                  }}
                 >
                   Copy Link
                 </button>

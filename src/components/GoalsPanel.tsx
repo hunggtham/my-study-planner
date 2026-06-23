@@ -13,6 +13,14 @@ interface GoalsPanelProps {
   periodStartDate: string;
   onClose?: () => void;
   isModal?: boolean;
+  variant?: "full" | "dashboard";
+  maxItems?: number;
+  showAdd?: boolean;
+  showActions?: boolean;
+  showDelete?: boolean;
+  showBreakdown?: boolean;
+  showNavigate?: boolean;
+  onNavigate?: () => void;
 }
 
 export const GoalsPanel: React.FC<GoalsPanelProps> = ({
@@ -20,6 +28,13 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
   periodStartDate,
   onClose,
   isModal,
+  maxItems,
+  showAdd = true,
+  showActions = true,
+  showDelete = true,
+  showBreakdown = true,
+  showNavigate = false,
+  onNavigate,
 }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -45,7 +60,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
       // This handles manual inserts where period_start_date is not exactly YYYY-01-01.
       const year = periodStartDate.slice(0, 4);
       query = query
-        .eq("period_type", "year")
+        .in("period_type", ["year", "yearly"])
         .gte("period_start_date", `${year}-01-01`)
         .lte("period_start_date", `${year}-12-31`);
     } else {
@@ -276,7 +291,7 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                 </CardContent>
               </Card>
             ) : (
-              goals.map((goal) => (
+              (maxItems ? goals.slice(0, maxItems) : goals).map((goal) => (
                 <Card
                   key={goal.id}
                   style={{
@@ -292,18 +307,38 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                       gap: "0.75rem",
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={goal.is_done}
-                      onChange={(e) => toggleGoal(goal.id, e.target.checked)}
-                      style={{
-                        width: "1.125rem",
-                        height: "1.125rem",
-                        cursor: "pointer",
-                        margin: "0.2rem 0 0 0",
-                        flexShrink: 0,
-                      }}
-                    />
+                    {showActions ? (
+                      <input
+                        type="checkbox"
+                        checked={goal.is_done}
+                        onChange={(e) => toggleGoal(goal.id, e.target.checked)}
+                        style={{
+                          width: "1.125rem",
+                          height: "1.125rem",
+                          cursor: "pointer",
+                          margin: "0.2rem 0 0 0",
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "1.125rem",
+                          height: "1.125rem",
+                          borderRadius: "50%",
+                          border:
+                            "2px solid " +
+                            (goal.is_done
+                              ? "var(--success)"
+                              : "var(--border-color)"),
+                          background: goal.is_done
+                            ? "var(--success)"
+                            : "transparent",
+                          margin: "0.2rem 0 0 0",
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
                     <div
                       style={{
                         flex: 1,
@@ -373,67 +408,94 @@ export const GoalsPanel: React.FC<GoalsPanelProps> = ({
                         )}
                       </div>
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "0.4rem",
-                        flexShrink: 0,
-                        alignSelf: "flex-start",
-                      }}
-                    >
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        aria-label="Đóng"
-                        onClick={() => setBreakdownGoal(goal)}
-                        title="Tách nhỏ mục tiêu"
+                    {(showBreakdown || showDelete) && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "0.4rem",
+                          flexShrink: 0,
+                          alignSelf: "flex-start",
+                        }}
                       >
-                        <GitMerge size={15} />
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="icon"
-                        aria-label="Đóng"
-                        onClick={() => deleteGoal(goal.id)}
-                        title="Xóa"
-                      >
-                        <Trash2 size={15} />
-                      </Button>
-                    </div>
+                        {showBreakdown && (
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            aria-label="Tạo task con"
+                            onClick={() => setBreakdownGoal(goal)}
+                            title="Tách nhỏ mục tiêu"
+                          >
+                            <GitMerge size={15} />
+                          </Button>
+                        )}
+                        {showDelete && (
+                          <Button
+                            variant="danger"
+                            size="icon"
+                            aria-label="Xóa"
+                            onClick={() => deleteGoal(goal.id)}
+                            title="Xóa"
+                          >
+                            <Trash2 size={15} />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
             )}
           </div>
 
-          <form
-            onSubmit={addGoal}
-            style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
-          >
-            <input
-              type="text"
-              placeholder={inputPlaceholder}
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
+          {showAdd && (
+            <form
+              onSubmit={addGoal}
               style={{
-                flex: 1,
-                minWidth: "200px",
-                padding: "0.75rem 1rem",
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--border-color)",
-                background: "var(--bg-surface)",
-                color: "var(--text-primary)",
+                display: "flex",
+                gap: "0.5rem",
+                flexWrap: "wrap",
+                marginTop: "0.5rem",
               }}
-            />
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={!newTitle.trim()}
-              style={{ whiteSpace: "nowrap" }}
             >
-              <Plus size={18} style={{ marginRight: "0.25rem" }} /> Thêm
+              <input
+                type="text"
+                placeholder={inputPlaceholder}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: "200px",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--border-color)",
+                  background: "var(--bg-surface)",
+                  color: "var(--text-primary)",
+                }}
+              />
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!newTitle.trim()}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                <Plus size={18} style={{ marginRight: "0.25rem" }} /> Thêm
+              </Button>
+            </form>
+          )}
+
+          {showNavigate && onNavigate && (
+            <Button
+              variant="secondary"
+              onClick={onNavigate}
+              style={{
+                width: "100%",
+                marginTop: "0.5rem",
+                justifyContent: "center",
+              }}
+            >
+              Xem mục tiêu {periodLabelLower}
             </Button>
-          </form>
+          )}
         </>
       )}
 
