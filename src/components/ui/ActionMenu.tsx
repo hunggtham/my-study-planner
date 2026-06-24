@@ -56,12 +56,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
-      if (isOpen) setIsOpen(false);
+      setIsOpen(false);
     };
-    handleResize();
+    setIsMobile(window.innerWidth <= 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [isOpen]);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -97,6 +97,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   const menuContent = (
     <div
       ref={menuRef}
+      className="action-menu-content"
       style={
         isMobile
           ? {
@@ -229,11 +230,9 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
         aria-label={ariaLabel || "Mở menu thao tác"}
         className="action-menu-trigger"
         onPointerDown={(e) => {
-          e.preventDefault();
           e.stopPropagation();
         }}
         onMouseDown={(e) => {
-          e.preventDefault();
           e.stopPropagation();
         }}
         onClick={(e) => {
