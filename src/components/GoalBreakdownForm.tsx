@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Goal, Task } from "../types";
 import { format, parseISO, addDays, isWeekend } from "date-fns";
 import { supabase } from "../lib/supabase";
@@ -39,6 +39,26 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
   const [perSession, setPerSession] = useState<number>(20);
   const [category, setCategory] = useState<string>(goal.category || "General");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+
+  const [existingCategories, setExistingCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchCategories = async () => {
+      const { data } = await supabase
+        .from("tasks")
+        .select("category")
+        .eq("user_id", user.id)
+        .neq("category", "");
+      if (data) {
+        const cats = Array.from(
+          new Set(data.map((d) => d.category).filter(Boolean)),
+        );
+        setExistingCategories(cats.sort());
+      }
+    };
+    fetchCategories();
+  }, [user]);
 
   // Step 2: Schedule Rule
   const [startDate, setStartDate] = useState<string>(
@@ -375,10 +395,16 @@ export const GoalBreakdownForm: React.FC<GoalBreakdownFormProps> = ({
                   <label>Phân loại (Category)</label>
                   <input
                     type="text"
+                    list="category-options"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="form-input"
                   />
+                  <datalist id="category-options">
+                    {existingCategories.map((cat) => (
+                      <option key={cat} value={cat} />
+                    ))}
+                  </datalist>
                 </div>
                 <div className="form-group">
                   <label>Độ ưu tiên</label>

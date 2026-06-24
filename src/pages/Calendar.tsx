@@ -902,6 +902,7 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
                   <div className="year-month-tasks">
                     {visibleTasks.map((task) => (
                       <TaskDisplay
+                        showDate={true}
                         key={task.id}
                         variant="compact"
                         task={task}
@@ -1483,6 +1484,7 @@ export const CalendarView: React.FC = () => {
                               >
                                 {dayTasks.map((task) => (
                                   <TaskDisplay
+                                    showDate={true}
                                     key={task.id}
                                     variant="compact"
                                     task={task}
@@ -1551,6 +1553,7 @@ export const CalendarView: React.FC = () => {
                           >
                             {dayTasks.map((task) => (
                               <TaskDisplay
+                                showDate={true}
                                 key={task.id}
                                 variant="compact"
                                 task={task}
@@ -1588,6 +1591,7 @@ export const CalendarView: React.FC = () => {
                       <div style={{ display: "flex", flexDirection: "column" }}>
                         {timedTasks.map((task) => (
                           <TaskDisplay
+                            showDate={true}
                             key={task.id}
                             variant="timeline"
                             task={task}

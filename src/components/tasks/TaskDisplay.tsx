@@ -16,6 +16,7 @@ export interface BaseTaskDisplayProps {
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
+  showDate?: boolean;
 }
 
 export interface TaskDisplayProps extends BaseTaskDisplayProps {

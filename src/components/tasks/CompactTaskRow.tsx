@@ -4,6 +4,8 @@ import { getStatusMeta } from "../../utils/status";
 import { Edit2, Trash2, ArrowRight, Copy } from "lucide-react";
 import { CategoryBadge, PriorityBadge } from "./TaskBadges";
 import { ActionMenu, ActionMenuItem } from "../ui/ActionMenu";
+import { format, parseISO } from "date-fns";
+import { vi } from "date-fns/locale";
 
 export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
   task,
@@ -17,6 +19,7 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
   selectionMode,
   isSelected,
   onToggleSelect,
+  showDate,
 }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
@@ -119,7 +122,18 @@ export const CompactTaskRow: React.FC<BaseTaskDisplayProps> = ({
               whiteSpace: "nowrap",
             }}
           >
-            {task.start_time || "-"}
+            {showDate
+              ? (() => {
+                  if (!task.date)
+                    return `Chưa có ngày${task.start_time ? ` · ${task.start_time}` : ""}`;
+                  try {
+                    const d = parseISO(task.date);
+                    return `${format(d, "dd/MM/yyyy")} · ${format(d, "EEEE", { locale: vi })}${task.start_time ? ` · ${task.start_time}` : ""}`;
+                  } catch {
+                    return `Chưa có ngày${task.start_time ? ` · ${task.start_time}` : ""}`;
+                  }
+                })()
+              : task.start_time || "-"}
           </span>
           <span
             className="compact-title"
