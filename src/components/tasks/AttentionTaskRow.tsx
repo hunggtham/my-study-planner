@@ -12,6 +12,7 @@ import {
   Trash2,
   ArrowRight,
 } from "lucide-react";
+import { getAttentionReasons } from "../../lib/attentionTasks";
 
 interface AttentionTaskRowProps {
   task: Task;
@@ -36,6 +37,38 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
 }) => {
   const meta = getStatusMeta(task.status);
   const StatusIcon = meta.icon;
+  const reasons = getAttentionReasons(task);
+
+  const getReasonBadge = (reason: string) => {
+    switch (reason) {
+      case "overdue":
+        return {
+          label: "Quá hạn",
+          color: "var(--danger)",
+          bg: "rgba(239, 68, 68, 0.1)",
+        };
+      case "late_today":
+        return {
+          label: "Trễ giờ",
+          color: "var(--warning)",
+          bg: "rgba(245, 158, 11, 0.1)",
+        };
+      case "moved_or_skipped":
+        return {
+          label: "Đã chuyển/Bỏ qua",
+          color: "var(--primary)",
+          bg: "rgba(59, 130, 246, 0.1)",
+        };
+      case "high_priority_today":
+        return {
+          label: "Ưu tiên cao",
+          color: "var(--danger)",
+          bg: "rgba(239, 68, 68, 0.1)",
+        };
+      default:
+        return null;
+    }
+  };
 
   const actionItems: ActionMenuItem[] = [
     ...(task.status !== "done"
@@ -167,17 +200,38 @@ export const AttentionTaskRow: React.FC<AttentionTaskRowProps> = ({
           >
             {task.title}
           </span>
-          <span
-            style={{
-              fontSize: "0.75rem",
-              color: "var(--warning)",
-              background: "rgba(245, 158, 11, 0.1)",
-              padding: "0.1rem 0.4rem",
-              borderRadius: "4px",
-            }}
-          >
-            Dời {task.moved_count} lần
-          </span>
+          {reasons.map((r) => {
+            const badge = getReasonBadge(r);
+            if (!badge) return null;
+            return (
+              <span
+                key={r}
+                style={{
+                  fontSize: "0.75rem",
+                  color: badge.color,
+                  background: badge.bg,
+                  padding: "0.1rem 0.4rem",
+                  borderRadius: "4px",
+                  fontWeight: 600,
+                }}
+              >
+                {badge.label}
+              </span>
+            );
+          })}
+          {task.moved_count > 0 && (
+            <span
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--warning)",
+                background: "rgba(245, 158, 11, 0.1)",
+                padding: "0.1rem 0.4rem",
+                borderRadius: "4px",
+              }}
+            >
+              Dời {task.moved_count} lần
+            </span>
+          )}
         </div>
 
         <div

@@ -6,18 +6,23 @@ import { AttentionTaskRow } from "../components/tasks/AttentionTaskRow";
 import { TaskForm } from "../components/TaskForm";
 import { useToast } from "../context/ToastContext";
 import { format, addDays } from "date-fns";
+import { isAttentionTask, getAttentionReasons } from "../lib/attentionTasks";
 
 export const AttentionTasks: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filters and Sorts
-  const [filter, setFilter] = useState<"all" | "pending" | "done">("all");
-  const [sortBy, setSortBy] = useState<
-    "latest" | "date_asc" | "date_desc" | "moved_count"
-  >("latest");
+  // Filters
+  const [filter, setFilter] = useState<
+    | "all"
+    | "overdue"
+    | "late_today"
+    | "moved_or_skipped"
+    | "high_priority_today"
+  >("all");
 
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -30,47 +35,59 @@ export const AttentionTasks: React.FC = () => {
   const fetchAttentionTasks = async () => {
     if (!user) return;
     setLoading(true);
-    // status = 'moved' OR moved_count > 0 OR moved_from_task_id IS NOT NULL
-    const { data, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", user.id)
-      .or("status.eq.moved,moved_count.gt.0,moved_from_task_id.not.is.null")
-      .order("updated_at", { ascending: false });
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .neq("status", "done")
+        .order("date", { ascending: true })
+        .order("start_time", { ascending: true });
 
-    if (!error && data) {
-      setTasks(data);
+      if (error) throw error;
+
+      if (data) {
+        const now = new Date();
+        const attentionTasks = data.filter((t) => isAttentionTask(t, now));
+        setTasks(attentionTasks);
+      }
+    } catch (err: any) {
+      console.error("Fetch attention tasks error:", err);
+      setError("Không thể tải danh sách công việc. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchAttentionTasks();
   }, [user]);
 
-  const filteredAndSortedTasks = useMemo(() => {
-    let result = [...tasks];
+  const filteredTasks = useMemo(() => {
+    const now = new Date();
+    if (filter === "all") return tasks;
+    return tasks.filter((t) => getAttentionReasons(t, now).includes(filter));
+  }, [tasks, filter]);
 
-    if (filter === "pending") {
-      result = result.filter((t) => t.status !== "done");
-    } else if (filter === "done") {
-      result = result.filter((t) => t.status === "done");
-    }
-
-    result.sort((a, b) => {
-      if (sortBy === "latest")
-        return (
-          new Date(b.updated_at || b.created_at || new Date()).getTime() -
-          new Date(a.updated_at || a.created_at || new Date()).getTime()
-        );
-      if (sortBy === "date_asc") return a.date.localeCompare(b.date);
-      if (sortBy === "date_desc") return b.date.localeCompare(a.date);
-      if (sortBy === "moved_count") return b.moved_count - a.moved_count;
-      return 0;
-    });
-
-    return result;
-  }, [tasks, filter, sortBy]);
+  const counts = useMemo(() => {
+    const now = new Date();
+    return {
+      all: tasks.length,
+      overdue: tasks.filter((t) =>
+        getAttentionReasons(t, now).includes("overdue"),
+      ).length,
+      late_today: tasks.filter((t) =>
+        getAttentionReasons(t, now).includes("late_today"),
+      ).length,
+      moved_or_skipped: tasks.filter((t) =>
+        getAttentionReasons(t, now).includes("moved_or_skipped"),
+      ).length,
+      high_priority_today: tasks.filter((t) =>
+        getAttentionReasons(t, now).includes("high_priority_today"),
+      ).length,
+    };
+  }, [tasks]);
 
   const handleAction = async (taskId: string, action: string) => {
     if (processingId) return;
@@ -88,9 +105,15 @@ export const AttentionTasks: React.FC = () => {
     if (Object.keys(patch).length > 0) {
       setProcessingId(taskId);
       const backup = tasks.find((t) => t.id === taskId);
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
-      );
+
+      // Optimistic update
+      if (patch.status === "done") {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      } else {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+        );
+      }
 
       try {
         const { error } = await supabase
@@ -102,8 +125,15 @@ export const AttentionTasks: React.FC = () => {
       } catch (err: any) {
         console.error("Task update failed:", err);
         showToast("Không thể cập nhật dữ liệu. Vui lòng thử lại.", "error");
-        if (backup)
-          setTasks((prev) => prev.map((t) => (t.id === taskId ? backup : t)));
+        if (backup) {
+          if (patch.status === "done") {
+            setTasks((prev) =>
+              [...prev, backup].sort((a, b) => a.date.localeCompare(b.date)),
+            );
+          } else {
+            setTasks((prev) => prev.map((t) => (t.id === taskId ? backup : t)));
+          }
+        }
       } finally {
         setProcessingId(null);
       }
@@ -159,67 +189,93 @@ export const AttentionTasks: React.FC = () => {
         style={{ flexDirection: "column", alignItems: "stretch", gap: "1rem" }}
       >
         <div>
-          <h1>Task cần chú ý</h1>
+          <h1>Cần chú ý</h1>
           <p className="text-muted">
-            Quản lý những task bị trì hoãn hoặc dời ngày
+            Các công việc quá hạn, trễ giờ hoặc cần xử lý lại.
           </p>
+          <div
+            style={{
+              fontSize: "0.85rem",
+              color: "var(--text-secondary)",
+              marginTop: "0.5rem",
+              background: "var(--bg-surface)",
+              padding: "0.75rem",
+              borderRadius: "8px",
+            }}
+          >
+            Logic: mục này hiển thị công việc chưa hoàn thành đã quá hạn, công
+            việc hôm nay đã trễ giờ, công việc đã chuyển/bỏ qua cần xử lý lại và
+            công việc ưu tiên cao trong hôm nay.
+          </div>
         </div>
 
         <div
           style={{
             display: "flex",
-            gap: "1rem",
+            gap: "0.5rem",
             flexWrap: "wrap",
             alignItems: "center",
+            marginTop: "0.5rem",
           }}
         >
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
-            style={{
-              background: "var(--bg-panel)",
-              color: "var(--text-main)",
-              border: "1px solid var(--border-color)",
-              padding: "0.4rem",
-              borderRadius: "4px",
-            }}
+          <button
+            onClick={() => setFilter("all")}
+            className={`btn ${filter === "all" ? "btn-primary" : "btn-outline"}`}
+            style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
           >
-            <option value="all">Tất cả ({tasks.length})</option>
-            <option value="pending">
-              Chưa hoàn thành ({tasks.filter((t) => t.status !== "done").length}
-              )
-            </option>
-            <option value="done">
-              Đã hoàn thành ({tasks.filter((t) => t.status === "done").length})
-            </option>
-          </select>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            style={{
-              background: "var(--bg-panel)",
-              color: "var(--text-main)",
-              border: "1px solid var(--border-color)",
-              padding: "0.4rem",
-              borderRadius: "4px",
-            }}
+            Tất cả ({counts.all})
+          </button>
+          <button
+            onClick={() => setFilter("overdue")}
+            className={`btn ${filter === "overdue" ? "btn-primary" : "btn-outline"}`}
+            style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
           >
-            <option value="latest">Mới cập nhật</option>
-            <option value="date_asc">Ngày tăng dần</option>
-            <option value="date_desc">Ngày giảm dần</option>
-            <option value="moved_count">Dời nhiều nhất</option>
-          </select>
+            Quá hạn ({counts.overdue})
+          </button>
+          <button
+            onClick={() => setFilter("late_today")}
+            className={`btn ${filter === "late_today" ? "btn-primary" : "btn-outline"}`}
+            style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+          >
+            Trễ giờ hôm nay ({counts.late_today})
+          </button>
+          <button
+            onClick={() => setFilter("moved_or_skipped")}
+            className={`btn ${filter === "moved_or_skipped" ? "btn-primary" : "btn-outline"}`}
+            style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+          >
+            Đã chuyển / Bỏ qua ({counts.moved_or_skipped})
+          </button>
+          <button
+            onClick={() => setFilter("high_priority_today")}
+            className={`btn ${filter === "high_priority_today" ? "btn-primary" : "btn-outline"}`}
+            style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+          >
+            Ưu tiên cao ({counts.high_priority_today})
+          </button>
         </div>
       </header>
 
+      {error && (
+        <div className="error-state card" style={{ color: "var(--danger)" }}>
+          {error}
+          <div style={{ marginTop: "1rem" }}>
+            <button className="btn btn-outline" onClick={fetchAttentionTasks}>
+              Thử lại
+            </button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="loading-state">Đang tải...</div>
-      ) : filteredAndSortedTasks.length === 0 ? (
-        <div className="empty-state card">Không tìm thấy task phù hợp.</div>
-      ) : (
+      ) : !error && filteredTasks.length === 0 ? (
+        <div className="empty-state card">
+          Không có công việc cần chú ý. Rất tốt!
+        </div>
+      ) : !error ? (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          {filteredAndSortedTasks.map((task) => (
+          {filteredTasks.map((task) => (
             <AttentionTaskRow
               key={task.id}
               task={task}
@@ -233,7 +289,7 @@ export const AttentionTasks: React.FC = () => {
             />
           ))}
         </div>
-      )}
+      ) : null}
 
       {isFormOpen && (
         <TaskForm

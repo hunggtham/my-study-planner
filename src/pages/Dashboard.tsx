@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { GoalsPanel } from "../components/GoalsPanel";
 import { Card, CardContent } from "../components/ui/Card";
+import { isAttentionTask } from "../lib/attentionTasks";
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -67,18 +68,7 @@ export const Dashboard: React.FC = () => {
   );
   const nowTime = format(now, "HH:mm");
 
-  const delayedTasks = tasks.filter((t) => {
-    if (t.status === "done") return false;
-    if (
-      t.date < todayStr &&
-      ["todo", "in_progress", "moved", "skipped"].includes(t.status || "todo")
-    )
-      return true;
-    // For today tasks, if start time is explicitly past and it's not done
-    if (t.date === todayStr && t.start_time && t.start_time < nowTime)
-      return true;
-    return false;
-  });
+  const delayedTasks = tasks.filter((t) => isAttentionTask(t, now));
 
   const getDoneCount = (list: Task[]) =>
     list.filter((t) => t.status === "done").length;
