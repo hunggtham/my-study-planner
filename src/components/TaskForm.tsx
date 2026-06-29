@@ -10,6 +10,31 @@ interface TaskFormProps {
   isLoading?: boolean;
 }
 
+export const cleanTaskTitle = (title?: string | null) => {
+  const raw = title?.trim() || "";
+  if (!raw) return "";
+
+  // Pattern: "Task name · Category · dd/MM/yyyy"
+  const dotParts = raw.split(" · ");
+  if (
+    dotParts.length >= 3 &&
+    /^\d{2}\/\d{2}\/\d{4}$/.test(dotParts[dotParts.length - 1])
+  ) {
+    return dotParts.slice(0, -2).join(" · ").trim();
+  }
+
+  // Pattern: "Task name - Category - dd/MM/yyyy"
+  const dashParts = raw.split(" - ");
+  if (
+    dashParts.length >= 3 &&
+    /^\d{2}\/\d{2}\/\d{4}$/.test(dashParts[dashParts.length - 1])
+  ) {
+    return dashParts.slice(0, -2).join(" - ").trim();
+  }
+
+  return raw;
+};
+
 export const TaskForm: React.FC<TaskFormProps> = ({
   initialData,
   onSubmit,
@@ -26,10 +51,33 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         .from("tasks")
         .select("id,title,category,task_type,priority,description,note,date")
         .eq("user_id", user.id)
+        .neq("task_type", "optional")
         .order("date", { ascending: false })
-        .limit(100);
+        .limit(1000);
+
       if (!error && data) {
-        setTemplates(data as Task[]);
+        const uniqueTemplates: Task[] = [];
+        const seenKeys = new Set<string>();
+
+        for (const task of data as Task[]) {
+          // If Supabase .neq doesn't exclude null properly, double check client side
+          if (task.task_type === "optional") continue;
+
+          const key = [
+            cleanTaskTitle(task.title),
+            normalizeCategory(task.category),
+            task.task_type || "main",
+            task.priority || "medium",
+            task.description?.trim() || "",
+            task.note?.trim() || "",
+          ].join("|");
+
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+            uniqueTemplates.push(task);
+          }
+        }
+        setTemplates(uniqueTemplates);
       }
     };
     fetchTemplates();
@@ -41,7 +89,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     if (template) {
       setFormData((prev) => ({
         ...prev,
-        title: template.title,
+        title: cleanTaskTitle(template.title),
         category: template.category,
         task_type: template.task_type,
         priority: template.priority,
@@ -83,7 +131,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ ...formData, category: normalizeCategory(formData.category) });
+    onSubmit({
+      ...formData,
+      title: cleanTaskTitle(formData.title) || "Công việc chưa đặt tên",
+      category: normalizeCategory(formData.category),
+    });
   };
 
   return (
@@ -103,11 +155,15 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                   <option value="" disabled>
                     Chọn task mẫu để tự động điền thông tin
                   </option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title} · {t.category || "Other"} · {t.date}
-                    </option>
-                  ))}
+                  {templates.map((t) => {
+                    const displayTitle = cleanTaskTitle(t.title);
+                    const optionLabel = `${displayTitle} · ${t.category || "Other"} · ${t.date}`;
+                    return (
+                      <option key={t.id} value={t.id} title={optionLabel}>
+                        {optionLabel}
+                      </option>
+                    );
+                  })}
                 </select>
                 <small
                   className="text-muted"

@@ -166,6 +166,7 @@ export const Schedule: React.FC = () => {
       .select("*")
       .eq("user_id", user.id)
       .eq("date", selectedDate)
+      .neq("task_type", "optional")
       .order("start_time", { ascending: true });
 
     // Fetch overdue tasks relative to selectedDate
@@ -174,6 +175,7 @@ export const Schedule: React.FC = () => {
       .select("*")
       .eq("user_id", user.id)
       .lt("date", selectedDate)
+      .neq("task_type", "optional")
       .in("status", ["todo", "in_progress", "skipped"])
       .order("date", { ascending: true })
       .order("start_time", { ascending: true });
@@ -181,11 +183,11 @@ export const Schedule: React.FC = () => {
     if (dayErr) console.error("Day fetch error:", dayErr);
     if (overErr) console.error("Overdue fetch error:", overErr);
 
-    setTasks(dayData || []);
+    setTasks((dayData || []).filter((t) => t.task_type !== "optional"));
     // Filter out overdue tasks that happen to be on the selectedDate (if user selects a past date)
     // so they don't appear in both lists.
     const filteredOverdue = (overdueData || []).filter(
-      (t) => t.date !== selectedDate,
+      (t) => t.date !== selectedDate && t.task_type !== "optional",
     );
     setOverdueTasks(filteredOverdue);
 

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { Task } from "../types";
-import { normalizeTaskType } from "../types";
 import {
   format,
   startOfMonth,
@@ -127,6 +126,7 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
       .from("tasks")
       .select("*")
       .eq("user_id", user.id)
+      .neq("task_type", "optional")
       .gte("date", `${selectedYear}-01-01`)
       .lte("date", `${selectedYear}-12-31`)
       .order("date", { ascending: true });
@@ -134,10 +134,7 @@ const YearView: React.FC<YearViewProps> = ({ user, onEditTask }) => {
     if (error) {
       setFetchError(error.message);
     } else if (data) {
-      // Normalize optional → main
-      setTasks(
-        data.map((t) => ({ ...t, task_type: normalizeTaskType(t.task_type) })),
-      );
+      setTasks(data.filter((t) => t.task_type !== "optional"));
     }
     setLoading(false);
   };
