@@ -197,3 +197,25 @@
   z-index: 9999;
   pointer-events: auto;
 }
+
+.section-header-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .section-header-with-action {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: left;
+  }
+  .section-header-with-action > div {
+    width: 100%;
+  }
+
+  .section-header-with-action button {
+    width: 100%;
+  }
+}
