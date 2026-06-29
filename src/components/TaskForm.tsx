@@ -43,6 +43,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 }) => {
   const { user } = useAuth();
   const [templates, setTemplates] = useState<Task[]>([]);
+  const [categories, setCategories] = useState<string[]>(["Other"]);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -64,8 +65,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           if (task.task_type === "optional") continue;
 
           const key = [
-            cleanTaskTitle(task.title),
-            normalizeCategory(task.category),
+            cleanTaskTitle(task.title).toLowerCase(),
+            normalizeCategory(task.category).toLowerCase(),
             task.task_type || "main",
             task.priority || "medium",
             task.description?.trim() || "",
@@ -77,10 +78,42 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             uniqueTemplates.push(task);
           }
         }
-        setTemplates(uniqueTemplates);
+
+        const sortedTemplates = uniqueTemplates.sort((a, b) =>
+          cleanTaskTitle(a.title).localeCompare(cleanTaskTitle(b.title), "vi"),
+        );
+        setTemplates(sortedTemplates);
       }
     };
+
+    const fetchCategories = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("category")
+        .eq("user_id", user.id)
+        .not("category", "is", null)
+        .order("category", { ascending: true });
+
+      if (!error && data) {
+        const fetchedCategories = Array.from(
+          new Set(
+            data
+              .map((row) => row.category?.trim())
+              .filter(Boolean)
+              .map((c) => c || "Other"),
+          ),
+        ).sort((a, b) => a.localeCompare(b, "vi"));
+
+        if (!fetchedCategories.includes("Other")) {
+          fetchedCategories.unshift("Other");
+        }
+        setCategories(fetchedCategories);
+      }
+    };
+
     fetchTemplates();
+    fetchCategories();
   }, [user, initialData?.id]);
 
   const handleTemplateSelect = (taskId: string) => {
@@ -99,6 +132,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     }
   };
 
+  const initialStatus = initialData?.status;
+  const isSpecialStatus =
+    initialStatus === "skipped" || initialStatus === "moved";
+
   const [formData, setFormData] = useState<Partial<Task>>({
     title: "",
     category: "Other",
@@ -107,16 +144,21 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     end_time: "10:00",
     description: "",
     task_type: "main",
-    status: "todo",
     priority: "medium",
     score_weight: 1,
     note: "",
     ...initialData,
+    status: isSpecialStatus ? "todo" : initialStatus || "todo",
   });
 
   useEffect(() => {
     if (initialData) {
-      setFormData((prev) => ({ ...prev, ...initialData }));
+      const initStat = initialData.status;
+      const fixStat =
+        initStat === "skipped" || initStat === "moved"
+          ? "todo"
+          : initStat || "todo";
+      setFormData((prev) => ({ ...prev, ...initialData, status: fixStat }));
     }
   }, [initialData]);
 
@@ -157,7 +199,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                   </option>
                   {templates.map((t) => {
                     const displayTitle = cleanTaskTitle(t.title);
-                    const optionLabel = `${displayTitle} · ${t.category || "Other"} · ${t.date}`;
+                    const optionLabel = `${displayTitle} · ${t.category || "Other"}`;
                     return (
                       <option key={t.id} value={t.id} title={optionLabel}>
                         {optionLabel}
@@ -196,17 +238,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                 type="text"
                 value={formData.category}
                 onChange={(e) => handleChange("category", e.target.value)}
-                list="categories"
+                list="task-category-options"
+                placeholder="Chọn hoặc nhập phân loại mới"
               />
-              <datalist id="categories">
-                <option value="SQLD" />
-                <option value="정보처리기사" />
-                <option value="IELTS" />
-                <option value="Korean" />
-                <option value="Spring Boot" />
-                <option value="React/WebSquare" />
-                <option value="Exercise" />
-                <option value="Other" />
+              <datalist id="task-category-options">
+                {categories.map((category) => (
+                  <option key={category} value={category} />
+                ))}
               </datalist>
             </label>
           </div>
@@ -279,9 +317,20 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                 <option value="todo">Chưa làm</option>
                 <option value="in_progress">Đang làm</option>
                 <option value="done">Hoàn thành</option>
-                <option value="skipped">Bỏ qua</option>
-                <option value="moved">Đã dời</option>
               </select>
+              {isSpecialStatus && (
+                <small
+                  className="text-muted"
+                  style={{
+                    display: "block",
+                    marginTop: "0.25rem",
+                    color: "var(--warning)",
+                  }}
+                >
+                  Trạng thái này chỉ được dùng khi bỏ qua hoặc dời lịch. Khi
+                  chỉnh sửa, hãy chọn Chưa làm, Đang làm hoặc Hoàn thành.
+                </small>
+              )}
             </label>
           </div>
 
