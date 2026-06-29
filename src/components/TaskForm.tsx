@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Task, TaskStatus, TaskPriority, TaskType } from "../types";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
 
 interface TaskFormProps {
   initialData?: Partial<Task>;
@@ -14,6 +16,41 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   onCancel,
   isLoading,
 }) => {
+  const { user } = useAuth();
+  const [templates, setTemplates] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      if (!user || initialData?.id) return;
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id,title,category,task_type,priority,description,note,date")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false })
+        .limit(100);
+      if (!error && data) {
+        setTemplates(data as Task[]);
+      }
+    };
+    fetchTemplates();
+  }, [user, initialData?.id]);
+
+  const handleTemplateSelect = (taskId: string) => {
+    if (!taskId) return;
+    const template = templates.find((t) => t.id === taskId);
+    if (template) {
+      setFormData((prev) => ({
+        ...prev,
+        title: template.title,
+        category: template.category,
+        task_type: template.task_type,
+        priority: template.priority,
+        description: template.description,
+        note: template.note,
+      }));
+    }
+  };
+
   const [formData, setFormData] = useState<Partial<Task>>({
     title: "",
     category: "Other",
@@ -39,9 +76,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const normalizeCategory = (value?: string | null) => {
+    const trimmed = value?.trim();
+    return trimmed && trimmed.length > 0 ? trimmed : "Other";
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, category: normalizeCategory(formData.category) });
   };
 
   return (
@@ -50,6 +92,33 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         <h3>{initialData?.id ? "Chỉnh sửa Task" : "Thêm Task mới"}</h3>
 
         <form onSubmit={handleSubmit} className="task-form">
+          {!initialData?.id && (
+            <div className="form-row" style={{ marginBottom: "1rem" }}>
+              <label className="field" style={{ flex: 1 }}>
+                Dùng task đã có
+                <select
+                  onChange={(e) => handleTemplateSelect(e.target.value)}
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Chọn task mẫu để tự động điền thông tin
+                  </option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title} · {t.category || "Other"} · {t.date}
+                    </option>
+                  ))}
+                </select>
+                <small
+                  className="text-muted"
+                  style={{ marginTop: "0.25rem", display: "block" }}
+                >
+                  Bạn có thể chọn một task đã tạo trước đó để dùng làm mẫu, sau
+                  đó chỉnh sửa lại trước khi lưu.
+                </small>
+              </label>
+            </div>
+          )}
           <div className="form-row">
             <label className="field">
               Tiêu đề *

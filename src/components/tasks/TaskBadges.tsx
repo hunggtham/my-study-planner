@@ -22,14 +22,15 @@ export const PRIORITY_LABELS: Record<string, string> = {
 };
 
 export const CategoryBadge: React.FC<{
-  category: string;
+  category?: string;
   showIcon?: boolean;
 }> = ({ category, showIcon = true }) => {
-  const categoryClass = CATEGORY_CLASS[category] || "cat-default";
+  const displayCategory = category?.trim() || "Other";
+  const categoryClass = CATEGORY_CLASS[displayCategory] || "cat-default";
   return (
     <span className={`badge category ${categoryClass}`}>
       {showIcon && <Tag size={12} style={{ marginRight: 4 }} />}
-      {category}
+      {displayCategory}
     </span>
   );
 };
