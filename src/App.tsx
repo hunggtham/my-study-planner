@@ -1,76 +1,16 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { useAuth } from "./hooks/useAuth";
-import { Login } from "./pages/Login";
-import "./styles.css"; // Global styles (we will update this later)
-
-import { ThemeProvider } from "./context/ThemeContext";
-import { ToastProvider } from "./context/ToastContext";
-import { Layout } from "./components/Layout";
-import { Schedule } from "./pages/Schedule";
-import { CalendarView } from "./pages/Calendar";
-import { Settings } from "./pages/Settings";
-import { AttentionTasks } from "./pages/AttentionTasks";
-import { Dashboard } from "./pages/Dashboard";
-import { Goals } from "./pages/Goals";
-import { SharedDashboard } from "./pages/SharedDashboard";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
+import "./styles.css";
 import { English } from "./pages/English";
-import "./styles-calendar.css";
-import "./styles-taskform.css";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { session, loading } = useAuth();
-  if (loading) return <div className="loading-screen">Đang tải...</div>;
-  if (!session) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-export const App: React.FC = () => {
-  return (
-    <ThemeProvider>
-      <ToastProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-
-            {/* Public English Study Page */}
-            <Route path="/english" element={<English />} />
-
-            {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="schedule" element={<Schedule />} />
-              <Route path="calendar" element={<CalendarView />} />
-              <Route path="goals" element={<Goals />} />
-              <Route path="attention" element={<AttentionTasks />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-
-            {/* Shared Dashboard (Public) */}
-            <Route path="/share/:slug" element={<SharedDashboard />} />
-            <Route path="/:slug/shared" element={<SharedDashboard />} />
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </ToastProvider>
-    </ThemeProvider>
-  );
-};
+export const App: React.FC = () => (
+  <Router>
+    <Routes>
+      <Route path="/" element={<English />} />
+      <Route path="/english" element={<English />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  </Router>
+);
 
 export default App;
