@@ -19,6 +19,7 @@ import { AttentionTasks } from "./pages/AttentionTasks";
 import { Dashboard } from "./pages/Dashboard";
 import { Goals } from "./pages/Goals";
 import { SharedDashboard } from "./pages/SharedDashboard";
+import { English } from "./pages/English";
 import "./styles-calendar.css";
 import "./styles-taskform.css";
 
@@ -38,6 +39,9 @@ export const App: React.FC = () => {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+
+            {/* Public English Study Page */}
+            <Route path="/english" element={<English />} />
 
             {/* Protected Routes */}
             <Route
