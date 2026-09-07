@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "title": "3-Month English Plan",
+    "goal": "IELTS 6.5",
+    "startDate": "2026-09-07",
+    "endDate": "2026-12-06",
+    "timezone": "Asia/Seoul",
+    "version": 1
+  },
+  "weeks": [
+    {"week":1,"range":"Sep 7–13","grammarUnits":[15,16],"pronunciation":"IPA basics + /iː/ vs /ɪ/","speakingTopics":["Introduce myself","My daily routine"],"writing":"Introduce myself — 80–100 words","reading":"Get Ready Reading — current lesson","listening":"Basic Tactics — current lesson","focus":"Restart gently and build a daily English habit"},
+    {"week":2,"range":"Sep 14–20","grammarUnits":[17,18],"pronunciation":"/æ/ vs /e/ + mouth position","speakingTopics":["Living in Korea","My work"],"writing":"My work — 100–150 words","reading":"Reading: main idea + keyword scanning","listening":"Basic Tactics — next lesson","focus":"Personal English: life and work"},
+    {"week":3,"range":"Sep 21–27","grammarUnits":[19,20],"pronunciation":"/ʌ/ vs /ɑː/ + /ʊ/ vs /uː/","speakingTopics":["My hometown","My family"],"writing":"My hometown — 100–150 words","reading":"Reading: detail questions","listening":"Basic Tactics — next lesson","focus":"Speak longer without translating sentence by sentence"},
+    {"week":4,"range":"Sep 28–Oct 4","grammarUnits":[21,22],"pronunciation":"Schwa /ə/ + unstressed syllables","speakingTopics":["Learning English","My study routine"],"writing":"Why I study English — 120–150 words","reading":"Reading: vocabulary from context","listening":"Basic Tactics — next lesson","focus":"Reduce hesitation and improve rhythm"},
+    {"week":5,"range":"Oct 5–11","grammarUnits":[23,24],"pronunciation":"Final consonants + voiced/unvoiced","speakingTopics":["Technology I use","AI in my work"],"writing":"Technology in my daily life","reading":"Reading: matching information","listening":"Basic Tactics — next lesson","focus":"Use work/technology vocabulary actively"},
+    {"week":6,"range":"Oct 12–18","grammarUnits":[25,26],"pronunciation":"Word stress","speakingTopics":["Exercise and health","Food and eating habits"],"writing":"Healthy habits — opinion paragraph","reading":"Reading: True/False/Not Given basics","listening":"Basic Tactics — next lesson","focus":"Give reasons and examples"},
+    {"week":7,"range":"Oct 19–25","grammarUnits":[27,28],"pronunciation":"Sentence stress","speakingTopics":["Travel","Transportation"],"writing":"A memorable trip","reading":"Reading: sentence completion","listening":"Basic Tactics — next lesson","focus":"Tell a coherent short story"},
+    {"week":8,"range":"Oct 26–Nov 1","grammarUnits":[29,30],"pronunciation":"Weak forms","speakingTopics":["Friends and social life","Free time and weekends"],"writing":"How I spend my free time","reading":"Reading: short-answer questions","listening":"Basic Tactics — next lesson","focus":"Sound more natural in common conversation"},
+    {"week":9,"range":"Nov 2–8","grammarUnits":[31,32],"pronunciation":"Linking","speakingTopics":["Career plans","Future goals"],"writing":"My career plan — 150 words","reading":"IELTS Reading Part 1 timed practice","listening":"Listening: one section under light time pressure","focus":"Future language + clear structure"},
+    {"week":10,"range":"Nov 9–15","grammarUnits":[33,34],"pronunciation":"Connected speech","speakingTopics":["IELTS Part 1 — Work/Study","IELTS Part 1 — Home/Hometown"],"writing":"IELTS-style paragraph: opinion + reason + example","reading":"IELTS Reading: improve wrong-answer analysis","listening":"Listening: identify distractors","focus":"Transition from general English to IELTS output"},
+    {"week":11,"range":"Nov 16–22","grammarUnits":[35,36],"pronunciation":"Intonation","speakingTopics":["IELTS Part 2 — Person","IELTS Part 2 — Place"],"writing":"IELTS Writing foundation: paragraph structure","reading":"IELTS Reading Part 1 + review","listening":"Listening: spelling/numbers/names accuracy","focus":"Build a reusable Part 2 story bank"},
+    {"week":12,"range":"Nov 23–29","grammarUnits":[37,38],"pronunciation":"Pronunciation error review","speakingTopics":["IELTS Part 2 — Experience","IELTS Part 3 — Opinion/Reason"],"writing":"IELTS Writing: advantages/disadvantages paragraph","reading":"IELTS Reading: timed passage + error log","listening":"Listening: timed section + transcript analysis","focus":"Extend answers and support opinions"},
+    {"week":13,"range":"Nov 30–Dec 6","grammarUnits":[39,40],"pronunciation":"Consolidation: stress + linking + intonation","speakingTopics":["IELTS mock speaking","3-month speaking review"],"writing":"IELTS Writing: mini Task 2 plan + introduction + body paragraph","reading":"IELTS Reading mini mock","listening":"IELTS Listening mini mock","focus":"Consolidate, test, and decide the next 3-month cycle"}
+  ],
+  "taskTemplates": [
+    {"type":"grammar-unit","skill":"Grammar","time":25,"mode":"Desk","source":"English Grammar in Use","repeat":"grammarUnits","name":"Murphy Unit {{item}}","action":"Study Unit {{item}}: read the explanation, do the exercises, write 3 true personal examples, then say them aloud."},
+    {"type":"grammar-review","skill":"Grammar","time":5,"mode":"Anywhere","source":"English Grammar in Use","name":"Current grammar — 3 personal sentences","action":"Close the book and make 3 true sentences using this week's grammar."},
+    {"type":"pronunciation","skill":"Pronunciation","time":10,"mode":"Anywhere","source":"English Pronunciation in Use","field":"pronunciation","name":"{{value}}","action":"Practice {{value}}. Listen first, repeat, then record yourself if possible."},
+    {"type":"pronunciation-review","skill":"Pronunciation","time":5,"mode":"Commute","source":"Pronunciation review","name":"Pronunciation quick review","action":"Recall and pronounce 5 words/sounds from this week before checking your notes."},
+    {"type":"speaking-cold","skill":"Speaking","time":5,"mode":"Can Speak","source":"Speaking topic","repeat":"speakingTopics","name":"{{item}} — cold attempt","action":"Speak about “{{item}}” without a script. Keep going for 1 minute and note only the biggest gaps."},
+    {"type":"speaking-improved","skill":"Speaking","time":10,"mode":"Can Speak","source":"Speaking topic","repeat":"speakingTopics","name":"{{item}} — improved answer","action":"Speak again about “{{item}}” for 1–2 minutes with clearer structure, 5 useful chunks and at least one reason/example."},
+    {"type":"listening","skill":"Listening","time":15,"mode":"Commute","source":"Basic Tactics / IELTS Listening","field":"listening","name":"{{value}}","action":"Listen once without transcript, answer/check, then identify why you missed anything. Extract at most 3 useful items."},
+    {"type":"shadowing","skill":"Listening","time":5,"mode":"Commute","source":"Listening audio","name":"Shadow 5 useful lines","action":"Repeat 5 short lines after the audio and copy rhythm, stress and linking."},
+    {"type":"reading","skill":"Reading","time":15,"mode":"Commute","source":"Get Ready for IELTS Reading","field":"reading","name":"{{value}}","action":"Do this week's reading focus: {{value}}. Do not stop for every unknown word."},
+    {"type":"reading-review","skill":"Reading","time":10,"mode":"Desk","source":"Reading error review","name":"Reading mistake review","action":"Review wrong answers and write one short reason for each error. Keep at most 3 useful language items."},
+    {"type":"writing","skill":"Writing","time":20,"mode":"Desk","source":"Topic / IELTS Writing","field":"writing","name":"{{value}}","action":"Write: {{value}}. Prioritize clear, accurate sentences. After correction, rewrite the weakest 3 sentences."},
+    {"type":"class-pre","skill":"IELTS Class","time":10,"mode":"Commute","source":"IELTS class","name":"IELTS class — pre-class review","action":"Review the previous class's most important corrections and re-say 1–2 corrected answers."},
+    {"type":"class-post","skill":"IELTS Class","time":15,"mode":"Desk","source":"IELTS class","name":"IELTS class — post-class corrections","action":"After class, save only important grammar, pronunciation and useful-expression corrections. Then re-answer one corrected question."},
+    {"type":"weekly-review","skill":"Review","time":10,"mode":"Anywhere","source":"Review","name":"Weekly review — top 10 items","action":"Recall the 10 highest-value expressions/errors from this week. Say a personal example for each item you still find difficult."}
+  ],
+  "overrides": {}
+}
